@@ -95,7 +95,12 @@
             <input type="hidden" id="editId" />
             <div>
               <label>Child's Full Name *</label
-              ><input type="text" id="cName" required placeholder="Enter child's full name"/>
+              ><input
+                type="text"
+                id="cName"
+                required
+                placeholder="Enter child's full name"
+              />
             </div>
             <div>
               <label>Gender *</label>
@@ -107,7 +112,14 @@
             </div>
             <div>
               <label>Age (months) 0-59 *</label
-              ><input type="number" id="cAge" min="0" max="59" required placeholder="Enter age"/>
+              ><input
+                type="number"
+                id="cAge"
+                min="0"
+                max="59"
+                required
+                placeholder="Enter age"
+              />
             </div>
             <div>
               <label>Purok *</label>
@@ -123,15 +135,32 @@
             </div>
             <div>
               <label>Complete Address *</label
-              ><input type="text" id="cAddress" required placeholder="Enter complete address"/>
+              ><input
+                type="text"
+                id="cAddress"
+                required
+                placeholder="Enter complete address"
+              />
             </div>
             <div>
               <label>Weight (kg) *</label
-              ><input type="number" id="cWeight" step="0.1" required placeholder="Enter weight"/>
+              ><input
+                type="number"
+                id="cWeight"
+                step="0.1"
+                required
+                placeholder="Enter weight"
+              />
             </div>
             <div>
               <label>Height (cm) *</label
-              ><input type="number" id="cHeight" step="0.1" required placeholder="Enter height"/>
+              ><input
+                type="number"
+                id="cHeight"
+                step="0.1"
+                required
+                placeholder="Enter height"
+              />
             </div>
             <div>
               <label>Date of Monitoring</label><input type="date" id="cDate" />
@@ -416,7 +445,7 @@
           </button>
         </div>
         <p class="account-delete-hint">
-          Delete removes account + all child records permanently
+          Delete removes account only. Child records will be kept in the system.
         </p>
       </div>
     </div>
@@ -432,12 +461,12 @@
         <div class="delete-info-box">
           <p><b>Username:</b> <span id="deleteAccountUsername">-</span></p>
           <p>
-            <b>Records:</b> <span id="deleteAccountRecords">0</span> child
-            records will be deleted
+            <b>Records:</b> <span id="deleteAccountRecords">0</span> Your child
+            records will be kept in the system
           </p>
           <p class="delete-warning">
-            ❗ This action cannot be undone! All your data will be permanently
-            removed.
+            ❗ This action cannot be undone! Your account will be permanently
+            removed, but all child records will be kept.
           </p>
         </div>
         <div class="delete-confirm-wrap">
