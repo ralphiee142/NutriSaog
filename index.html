@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NutriTrack Saog - Login</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="supabase.js"></script>
+  </head>
+  <body class="auth-body">
+    <div class="auth-container">
+      <div class="auth-left">
+        <div class="brand brand-centered">
+          <img
+            src="logo.png"
+            alt="Barangay Saog Logo"
+            class="auth-logo-large"
+          />
+          <h1 class="brand-title">NutriTrack<br /><span>Saog</span></h1>
+          <p class="brand-subtitle">
+            Child Nutritional Status Monitoring & BMI Classification System
+          </p>
+          <div class="barangay-info barangay-info-centered">
+            <small class="barangay-small"
+              >Barangay Saog, Marilao, Bulacan<br />Est. 1961 | Ramcar Phase 2 |
+              Est. Office 1997</small
+            >
+          </div>
+        </div>
+      </div>
+      <div class="auth-right">
+        <div class="auth-right-logo-box">
+          <img src="logo.png" alt="Logo" class="auth-right-logo" />
+          <p class="auth-right-caption">
+            Barangay Saog • Marilao, Bulacan<br />Est. 1961
+          </p>
+        </div>
+        <div class="auth-tabs">
+          <button class="tab active" data-tab="login">Login</button>
+          <button class="tab" data-tab="register">Register</button>
+        </div>
+        <!-- Login -->
+        <form id="loginForm" class="auth-form active">
+          <h2>Barangay Staff Login</h2>
+          <p class="sub">For LLN and Nutrition Staff of Barangay Saog only</p>
+          <label>Username</label>
+          <input
+            type="text"
+            id="loginUser"
+            placeholder="e.g. lln_saog"
+            required
+          />
+          <label>Password</label>
+          <div class="pass-wrap">
+            <input
+              type="password"
+              id="loginPass"
+              placeholder="Enter password"
+              required
+            />
+            <button
+              type="button"
+              class="show-pass"
+              onclick="togglePass('loginPass', this)"
+            >
+              Show
+            </button>
+          </div>
+          <button type="submit" class="btn-primary">Login to Dashboard</button>
+        </form>
+        <!-- Register -->
+        <form id="registerForm" class="auth-form">
+          <h2>Register Staff Account</h2>
+          <p class="sub">Create an account for new staff</p>
+          <label>Full Name</label>
+          <input
+            type="text"
+            id="regName"
+            placeholder="Juan Dela Cruz"
+            required
+          />
+          <label>Username</label>
+          <input type="text" id="regUser" placeholder="e.g. staff1" required />
+          <label>Password</label>
+          <div class="pass-wrap">
+            <input
+              type="password"
+              id="regPass"
+              placeholder="Create password"
+              required
+            />
+            <button
+              type="button"
+              class="show-pass"
+              onclick="togglePass('regPass', this)"
+            >
+              Show
+            </button>
+          </div>
+          <label>Confirm Password</label>
+          <div class="pass-wrap">
+            <input
+              type="password"
+              id="regPass2"
+              placeholder="Confirm password"
+              required
+            />
+            <button
+              type="button"
+              class="show-pass"
+              onclick="togglePass('regPass2', this)"
+            >
+              Show
+            </button>
+          </div>
+          <button type="submit" class="btn-primary">Register</button>
+        </form>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
