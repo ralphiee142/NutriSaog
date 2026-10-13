@@ -156,7 +156,7 @@ if (registerForm) {
           .insert([{ name, username: u, password: p }])
           .select();
         if (!error) {
-          alert("Registered successfully in Supabase! You can now log in.");
+          alert("Registered successfully! You can now log in.");
           document.querySelector("[data-tab=login]")?.click();
           return;
         }
@@ -1728,14 +1728,9 @@ async function confirmDeleteAccount() {
       isSupabaseConfigured()
     ) {
       const supabase = getSupabase();
-      // Delete children records first
-      const { error: childErr } = await supabase
-        .from("children")
-        .delete()
-        .eq("created_by", username);
-      if (childErr) console.warn("Failed to delete children:", childErr);
-      else console.log(`Deleted children records for ${username}`);
-      // Delete user
+      // KEEP CHILD RECORDS - DO NOT DELETE FROM children TABLE
+      console.log(`Keeping all child records for ${username} - deleting account only`);
+      // Delete user account only
       const { error: userErr } = await supabase
         .from("users")
         .delete()
@@ -1748,29 +1743,28 @@ async function confirmDeleteAccount() {
           .eq("username", username);
         if (userErr2) throw userErr2;
       }
-      console.log(`Deleted user ${username} from Supabase`);
+      console.log(`Deleted user ${username} from Supabase - child records kept`);
     }
-    // Delete from localStorage
+    // Delete from localStorage - ACCOUNT ONLY, KEEP CHILD RECORDS
     try {
       let users = JSON.parse(localStorage.getItem("nt_users") || "[]");
       users = users.filter((u) => u.username !== username);
       localStorage.setItem("nt_users", JSON.stringify(users));
-      // Delete per-user children
-      localStorage.removeItem(`nt_children_${username}`);
+      // DO NOT DELETE CHILDREN - Keep them in system
       localStorage.removeItem("nt_current");
-      localStorage.removeItem("nt_children");
-      // Clean migrated flags
+      // Only clean account session flags, NOT children data
       Object.keys(localStorage).forEach((k) => {
-        if (k.includes(username) || k.includes("migrated_" + username)) {
+        if (k.startsWith("migrated_" + username)) {
           localStorage.removeItem(k);
         }
       });
+      console.log(`Account ${username} deleted locally - child records preserved`);
     } catch (e) {
       console.warn("Local cleanup error", e);
     }
 
     alert(
-      `✅ Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
+      `✅ Account "${username}" has been deleted!\n\nNote: All child records have been KEPT in the system and were NOT deleted.\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
@@ -1822,7 +1816,7 @@ async function confirmDeleteAccount() {
   }
   if (
     !confirm(
-      `FINAL CONFIRMATION:\n\nDelete account "${username}" and ${getChildren().length} child records?\n\nThis CANNOT be undone!\n\nClick OK to PERMANENTLY DELETE.`,
+      `FINAL CONFIRMATION:\n\nDelete account "${username}"?\n\nNote: All child records will be KEPT in the system.\n\n`,
     )
   ) {
     return;
@@ -1838,14 +1832,9 @@ async function confirmDeleteAccount() {
       isSupabaseConfigured()
     ) {
       const supabase = getSupabase();
-      // Delete children records first
-      const { error: childErr } = await supabase
-        .from("children")
-        .delete()
-        .eq("created_by", username);
-      if (childErr) console.warn("Failed to delete children:", childErr);
-      else console.log(`Deleted children records for ${username}`);
-      // Delete user
+      // KEEP CHILD RECORDS - DO NOT DELETE FROM children TABLE
+      console.log(`Keeping all child records for ${username} - deleting account only`);
+      // Delete user account only
       const { error: userErr } = await supabase
         .from("users")
         .delete()
@@ -1858,29 +1847,28 @@ async function confirmDeleteAccount() {
           .eq("username", username);
         if (userErr2) throw userErr2;
       }
-      console.log(`Deleted user ${username} from Supabase`);
+      console.log(`Deleted user ${username} from Supabase - child records kept`);
     }
-    // Delete from localStorage
+    // Delete from localStorage - ACCOUNT ONLY, KEEP CHILD RECORDS
     try {
       let users = JSON.parse(localStorage.getItem("nt_users") || "[]");
       users = users.filter((u) => u.username !== username);
       localStorage.setItem("nt_users", JSON.stringify(users));
-      // Delete per-user children
-      localStorage.removeItem(`nt_children_${username}`);
+      // DO NOT DELETE CHILDREN - Keep them in system
       localStorage.removeItem("nt_current");
-      localStorage.removeItem("nt_children");
-      // Clean migrated flags
+      // Only clean account session flags, NOT children data
       Object.keys(localStorage).forEach((k) => {
-        if (k.includes(username) || k.includes("migrated_" + username)) {
+        if (k.startsWith("migrated_" + username)) {
           localStorage.removeItem(k);
         }
       });
+      console.log(`Account ${username} deleted locally - child records preserved`);
     } catch (e) {
       console.warn("Local cleanup error", e);
     }
 
     alert(
-      `✅ Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
+      `✅ Account "${username}" has been deleted!\n\nNote: All child records have been KEPT in the system and were NOT deleted.\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
