@@ -662,9 +662,23 @@ if (childForm) {
         saveChildren(children);
         alert("✅ Added! Record for " + data.name);
         resetForm();
+        // Clear search filters so new record is visible
+        const s1 = document.getElementById("searchInput"); if(s1) s1.value = "";
+        const s2 = document.getElementById("purokSearch"); if(s2) s2.value = "";
+        const s3 = document.getElementById("feedingSearch"); if(s3) s3.value = "";
+        const f1 = document.getElementById("filterStatus"); if(f1) f1.value = "";
         await loadChildren();
         renderDashboard();
         renderTable();
+        renderPurok();
+        renderFeeding();
+        // Switch to All Records view to see new record
+        document.querySelectorAll(".side-btn").forEach(x=>x.classList.remove("active"));
+        document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+        const recBtn = document.querySelector('[data-view="records"]');
+        if(recBtn) recBtn.classList.add("active");
+        const recView = document.getElementById("view-records");
+        if(recView) recView.classList.add("active");
         return;
       }
     }
@@ -673,8 +687,13 @@ if (childForm) {
     saveChildren(children);
     alert("✅ Added! Record for " + data.name);
     resetForm();
+    const s1b = document.getElementById("searchInput"); if(s1b) s1b.value = "";
+    const s2b = document.getElementById("purokSearch"); if(s2b) s2b.value = "";
+    const f1b = document.getElementById("filterStatus"); if(f1b) f1b.value = "";
     renderDashboard();
     renderTable();
+    renderPurok();
+    renderFeeding();
   });
 }
 
@@ -852,16 +871,22 @@ function renderTable() {
   const searchVal =
     document.getElementById("searchInput")?.value.toLowerCase() || "";
   const f = document.getElementById("filterStatus")?.value || "";
-  let children = getChildren().filter((c) => {
-    // SEARCH: name, purok, address, status
-    const matchQ =
-      !searchVal ||
-      c.name.toLowerCase().includes(searchVal) ||
-      c.purok.toLowerCase().includes(searchVal) ||
-      c.address.toLowerCase().includes(searchVal) ||
-      c.status.toLowerCase().includes(searchVal);
+  let allChildren = getChildren();
+  let children = allChildren.filter((c) => {
+    // SEARCH: name, purok, address, status, gender, age
+    if (!searchVal) return true;
+    const sv = searchVal.toLowerCase().trim();
+    return (
+      (c.name && c.name.toLowerCase().includes(sv)) ||
+      (c.purok && c.purok.toLowerCase().includes(sv)) ||
+      (c.address && c.address.toLowerCase().includes(sv)) ||
+      (c.status && c.status.toLowerCase().includes(sv)) ||
+      (c.gender && c.gender.toLowerCase().includes(sv)) ||
+      String(c.age).includes(sv)
+    );
+  }).filter((c) => {
     const matchF = !f || c.status === f;
-    return matchQ && matchF;
+    return matchF;
   });
   // sort newest first
   children = children.reverse();
@@ -1728,9 +1753,9 @@ async function confirmDeleteAccount() {
       isSupabaseConfigured()
     ) {
       const supabase = getSupabase();
-      // KEEP CHILD RECORDS - DO NOT DELETE FROM children TABLE
-      console.log(`Keeping all child records for ${username} - deleting account only`);
-      // Delete user account only
+      // KEEP CHILD RECORDS - DO NOT DELETE CHILDREN
+      console.log(`Keeping child records for ${username} - account only will be deleted`);
+      // Delete user
       const { error: userErr } = await supabase
         .from("users")
         .delete()
@@ -1743,28 +1768,27 @@ async function confirmDeleteAccount() {
           .eq("username", username);
         if (userErr2) throw userErr2;
       }
-      console.log(`Deleted user ${username} from Supabase - child records kept`);
+      console.log(`Deleted user ${username} from Supabase`);
     }
-    // Delete from localStorage - ACCOUNT ONLY, KEEP CHILD RECORDS
+    // Delete from localStorage
     try {
       let users = JSON.parse(localStorage.getItem("nt_users") || "[]");
       users = users.filter((u) => u.username !== username);
       localStorage.setItem("nt_users", JSON.stringify(users));
-      // DO NOT DELETE CHILDREN - Keep them in system
+      // KEEP CHILDREN - DO NOT DELETE LOCAL CHILDREN RECORDS
       localStorage.removeItem("nt_current");
-      // Only clean account session flags, NOT children data
+      // Clean migrated flags
       Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith("migrated_" + username)) {
+        if (k.includes(username) || k.includes("migrated_" + username)) {
           localStorage.removeItem(k);
         }
       });
-      console.log(`Account ${username} deleted locally - child records preserved`);
     } catch (e) {
       console.warn("Local cleanup error", e);
     }
 
     alert(
-      `✅ Account "${username}" has been deleted!\n\nNote: All child records have been KEPT in the system and were NOT deleted.\n\nRedirecting to login...`,
+      `✅ Account "${username}" has been deleted!\n\nAll child records were KEPT in the system.\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
@@ -1832,9 +1856,9 @@ async function confirmDeleteAccount() {
       isSupabaseConfigured()
     ) {
       const supabase = getSupabase();
-      // KEEP CHILD RECORDS - DO NOT DELETE FROM children TABLE
-      console.log(`Keeping all child records for ${username} - deleting account only`);
-      // Delete user account only
+      // KEEP CHILD RECORDS - DO NOT DELETE CHILDREN
+      console.log(`Keeping child records for ${username} - account only will be deleted`);
+      // Delete user
       const { error: userErr } = await supabase
         .from("users")
         .delete()
@@ -1847,28 +1871,27 @@ async function confirmDeleteAccount() {
           .eq("username", username);
         if (userErr2) throw userErr2;
       }
-      console.log(`Deleted user ${username} from Supabase - child records kept`);
+      console.log(`Deleted user ${username} from Supabase`);
     }
-    // Delete from localStorage - ACCOUNT ONLY, KEEP CHILD RECORDS
+    // Delete from localStorage
     try {
       let users = JSON.parse(localStorage.getItem("nt_users") || "[]");
       users = users.filter((u) => u.username !== username);
       localStorage.setItem("nt_users", JSON.stringify(users));
-      // DO NOT DELETE CHILDREN - Keep them in system
+      // KEEP CHILDREN - DO NOT DELETE LOCAL CHILDREN RECORDS
       localStorage.removeItem("nt_current");
-      // Only clean account session flags, NOT children data
+      // Clean migrated flags
       Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith("migrated_" + username)) {
+        if (k.includes(username) || k.includes("migrated_" + username)) {
           localStorage.removeItem(k);
         }
       });
-      console.log(`Account ${username} deleted locally - child records preserved`);
     } catch (e) {
       console.warn("Local cleanup error", e);
     }
 
     alert(
-      `✅ Account "${username}" has been deleted!\n\nNote: All child records have been KEPT in the system and were NOT deleted.\n\nRedirecting to login...`,
+      `✅ Account "${username}" has been deleted!\n\nAll child records were KEPT in the system.\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
