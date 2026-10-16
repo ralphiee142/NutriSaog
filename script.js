@@ -1094,7 +1094,7 @@ function renderTable() {
     children
       .map(
         (c) =>
-          `<tr>\n    <td><b>${c.name}</b><br><small style="color:#888;font-size:10px">Added by: ${c.created_by || "-"}</small></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.gender === "Male" ? " Male" : c.gender === "Female" ? " Female" : c.gender || "-"}</span></td><td>${c.age}</td><td>${c.purok}</td><td style="max-width:200px;min-width:140px;white-space:normal;word-break:break-word;line-height:1.4;font-size:12px;cursor:pointer" title="${c.address} - Click to see full address" onclick="showFullAddressById('${c.id}')" class="address-cell">${c.address || "-"}</td><td>${c.weight}kg</td><td>${c.height}cm</td>\n    <td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.date}</td><td><span style="background:#f3f4f6;padding:4px 8px;border-radius:10px;font-size:11px;font-weight:600" title="Last updated: ${c.updated_at || c.date}">${c.updated_by && c.updated_by !== c.created_by ? "✏️ " + c.updated_by : c.created_by || "-"}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')"><i class="fa-solid fa-pen"></i> Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')"><i class="fa-solid fa-trash"></i> Delete</button></div></td>\n  </tr>`,
+          `<tr>\n    <td><b>${c.name}</b><br><small style="color:#888;font-size:10px">Added by: ${c.created_by || "-"}</small></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.gender === "Male" ? "👦 Male" : c.gender === "Female" ? "👧 Female" : c.gender || "-"}</span></td><td>${c.age}</td><td>${c.purok}</td><td style="max-width:200px;min-width:140px;white-space:normal;word-break:break-word;line-height:1.4;font-size:12px;cursor:pointer" title="${c.address} - Click to see full address" onclick="showFullAddressById('${c.id}')" class="address-cell">${c.address || "-"}</td><td>${c.weight}kg</td><td>${c.height}cm</td>\n    <td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.date}</td><td><span style="background:#f3f4f6;padding:4px 8px;border-radius:10px;font-size:11px;font-weight:600" title="Last updated: ${c.updated_at || c.date}">${c.updated_by && c.updated_by !== c.created_by ? "✏️ " + c.updated_by : c.created_by || "-"}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')">✏️ Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')">🗑️ Delete</button></div></td>\n  </tr>`,
       )
       .join("") ||
     `<tr><td colspan=12 style="text-align:center;padding:20px">No records found for "${searchVal}" - try another name</td></tr>`;
@@ -1317,14 +1317,14 @@ function renderPurok() {
     <div class="card"><h3>${children.length}</h3><p>Total in ${activePurok}</p></div>
     <div class="card normal"><h3>${children.filter((c) => c.status === "Normal").length}</h3><p>Normal</p></div>
     <div class="card under"><h3>${children.filter((c) => c.status === "Underweight").length}</h3><p>Underweight</p></div>
-    <div class="card severely"><h3>${children.filter((c) => c.status === "Severely Underweight").length}</h3><p>Severely Underweight</p></div>
     <div class="card over"><h3>${children.filter((c) => c.status === "Overweight").length}</h3><p>Overweight</p></div>
+    <div class="card obese"><h3>${children.filter((c) => c.status === "Obese").length}</h3><p>Obese</p></div>
   `;
   document.querySelector("#purokTable tbody").innerHTML =
     children
       .map(
         (c) =>
-          `<tr>\n    <td>${c.name}</td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender || "-"}</span></td><td>${c.age}m</td><td>${c.address}</td><td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')"><i class="fa-solid fa-pen"></i> Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')"><i class="fa-solid fa-trash"></i> Delete</button></div></td>\n  </tr>`,
+          `<tr>\n    <td>${c.name}</td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender === "Male" ? "👦" : c.gender === "Female" ? "👧" : ""} ${c.gender || "-"}</span></td><td>${c.age}m</td><td>${c.address}</td><td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')">✏️ Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')">🗑️ Delete</button></div></td>\n  </tr>`,
       )
       .join("") || "<tr><td colspan=7>No children in this purok</td></tr>";
 }
@@ -1416,7 +1416,7 @@ function renderFeeding() {
     children
       .map(
         (c) => `<tr>
-    <td><b>${c.name}</b></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender === "Male" ? "" : c.gender === "Female" ? "" : ""} ${c.gender || "N/A"}</span></td><td><span style="background:#f0f0f0;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.purok}</span></td><td>${c.age}m</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.bmi}</td><td>${c.address}</td>
+    <td><b>${c.name}</b></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender === "Male" ? "👦" : c.gender === "Female" ? "👧" : ""} ${c.gender || "N/A"}</span></td><td><span style="background:#f0f0f0;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.purok}</span></td><td>${c.age}m</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.bmi}</td><td>${c.address}</td>
   </tr>`,
       )
       .join("") ||
