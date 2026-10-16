@@ -30,7 +30,7 @@ function togglePass(id, btn) {
     );
     if (users.length !== before || localStorage.getItem("nt_users") === null) {
       localStorage.setItem("nt_users", JSON.stringify(users));
-      console.log("ðŸ—‘ï¸ Deleted admin from nt_users");
+      console.log("Deleted admin from nt_users");
     }
     // 2. Delete nt_current if admin
     const curStr = localStorage.getItem("nt_current");
@@ -49,7 +49,7 @@ function togglePass(id, btn) {
             localStorage.removeItem(k);
           }
         });
-        console.log("ðŸ—‘ï¸ Deleted admin session and admin children data");
+        console.log("Deleted admin session and admin children data");
         if (window.location.pathname.includes("dashboard.html")) {
           alert(
             "Default admin account has been DELETED! Redirecting to login. Use ml1 or lln1 accounts.",
@@ -293,7 +293,7 @@ async function fetchChildrenFromSupabase() {
       .order("created_at", { ascending: false });
     if (error) throw error;
     console.log(
-      `ðŸ“‚ Loading SHARED records - found ${data.length} total (all accounts)`,
+      ` Loading SHARED records - found ${data.length} total (all accounts)`,
     );
     return data.map((row) => ({
       id: row.id,
@@ -427,7 +427,7 @@ async function migrateLocalToSupabase(localData) {
       .insert(toInsert)
       .select();
     if (error) throw error;
-    console.log("âœ… Migrated", data.length, "records to Supabase!");
+    console.log(" Migrated", data.length, "records to Supabase!");
     localStorage.setItem(migratedKey + "_done", "true");
     // After migration, reload
     const fresh = await fetchChildrenFromSupabase();
@@ -588,33 +588,261 @@ async function deleteSingleChildFromSupabase(id) {
   }
 }
 
-function getClassification(bmi) {
-  if (bmi < 15) return "Underweight";
-  if (bmi <= 18.4) return "Normal";
-  if (bmi <= 20) return "Overweight";
-  return "Obese";
+
+// === WHO CHILD GROWTH STANDARDS - Weight for Age 0-71 months ===
+// Based on printed tables: Girls (first pic) and Boys (second pic)
+// Format per age: [severely_max, underweight_from, underweight_to, normal_from, normal_to, overweight_min]
+
+const GIRLS_WFA = {
+  0:[2.0,2.1,2.3,2.4,4.2,4.3],
+  1:[2.7,2.8,3.1,3.2,5.5,5.6],
+  2:[3.4,3.5,3.8,3.9,6.6,6.7],
+  3:[4.0,4.1,4.4,4.5,7.5,7.6],
+  4:[4.4,4.5,4.9,5.0,8.2,8.3],
+  5:[4.8,4.9,5.3,5.4,8.8,8.9],
+  6:[5.1,5.2,5.6,5.7,9.3,9.4],
+  7:[5.3,5.4,5.9,6.0,9.8,9.9],
+  8:[5.6,5.7,6.2,6.3,10.2,10.3],
+  9:[5.8,5.9,6.4,6.5,10.5,10.6],
+  10:[5.9,6.0,6.6,6.7,10.9,11.0],
+  11:[6.1,6.2,6.8,6.9,11.2,11.3],
+  12:[6.3,6.4,6.9,7.0,11.5,11.6],
+  13:[6.4,6.5,7.1,7.2,11.8,11.9],
+  14:[6.6,6.7,7.3,7.4,12.1,12.2],
+  15:[6.7,6.8,7.5,7.6,12.4,12.5],
+  16:[6.9,7.0,7.6,7.7,12.6,12.7],
+  17:[7.0,7.1,7.8,7.9,12.9,13.0],
+  18:[7.2,7.3,8.0,8.1,13.2,13.3],
+  19:[7.3,7.4,8.1,8.2,13.5,13.6],
+  20:[7.5,7.6,8.3,8.4,13.7,13.8],
+  21:[7.6,7.7,8.5,8.6,14.0,14.1],
+  22:[7.8,7.9,8.6,8.7,14.3,14.4],
+  23:[7.9,8.0,8.8,8.9,14.6,14.7],
+  24:[8.1,8.2,8.9,9.0,14.8,14.9],
+  25:[8.2,8.3,9.1,9.2,15.1,15.2],
+  26:[8.4,8.5,9.3,9.4,15.4,15.5],
+  27:[8.5,8.6,9.4,9.5,15.7,15.8],
+  28:[8.6,8.7,9.6,9.7,16.0,16.1],
+  29:[8.8,8.9,9.7,9.8,16.2,16.3],
+  30:[8.9,9.0,9.9,10.0,16.5,16.6],
+  31:[9.0,9.1,10.0,10.1,16.8,16.9],
+  32:[9.1,9.2,10.2,10.3,17.1,17.2],
+  33:[9.3,9.4,10.3,10.4,17.3,17.4],
+  34:[9.4,9.5,10.4,10.5,17.6,17.7],
+  35:[9.5,9.6,10.6,10.7,17.9,18.0],
+  36:[9.6,9.7,10.7,10.8,18.1,18.2],
+  37:[9.7,9.8,10.8,10.9,18.4,18.5],
+  38:[9.8,9.9,11.0,11.1,18.7,18.8],
+  39:[9.9,10.0,11.1,11.2,19.0,19.1],
+  40:[10.1,10.2,11.2,11.3,19.2,19.3],
+  41:[10.2,10.3,11.4,11.5,19.5,19.6],
+  42:[10.3,10.4,11.5,11.6,19.8,19.9],
+  43:[10.4,10.5,11.6,11.7,20.1,20.2],
+  44:[10.5,10.6,11.7,11.8,20.4,20.5],
+  45:[10.6,10.7,11.9,12.0,20.7,20.8],
+  46:[10.7,10.8,12.0,12.1,20.9,21.0],
+  47:[10.8,10.9,12.1,12.2,21.2,21.3],
+  48:[10.9,11.0,12.2,12.3,21.5,21.6],
+  49:[11.0,11.1,12.3,12.4,21.8,21.9],
+  50:[11.1,11.2,12.4,12.5,22.1,22.2],
+  51:[11.2,11.3,12.6,12.7,22.4,22.5],
+  52:[11.3,11.4,12.7,12.8,22.6,22.7],
+  53:[11.4,11.5,12.8,12.9,22.9,23.0],
+  54:[11.5,11.6,12.9,13.0,23.2,23.3],
+  55:[11.6,11.7,13.1,13.2,23.5,23.6],
+  56:[11.7,11.8,13.2,13.3,23.8,23.9],
+  57:[11.8,11.9,13.3,13.4,24.1,24.2],
+  58:[11.9,12.0,13.4,13.5,24.4,24.5],
+  59:[12.0,12.1,13.5,13.6,24.6,24.7],
+  60:[12.1,12.2,13.6,13.7,24.7,24.8],
+  61:[12.4,12.5,13.9,14.0,24.8,24.9],
+  62:[12.5,12.6,14.0,14.1,25.1,25.2],
+  63:[12.6,12.7,14.1,14.2,25.4,25.5],
+  64:[12.7,12.8,14.2,14.3,25.6,25.7],
+  65:[12.8,12.9,14.3,14.4,25.9,26.0],
+  66:[12.9,13.0,14.5,14.6,26.2,26.3],
+  67:[13.0,13.1,14.6,14.7,26.5,26.6],
+  68:[13.1,13.2,14.7,14.8,26.7,26.8],
+  69:[13.2,13.3,14.8,14.9,27.0,27.1],
+  70:[13.3,13.4,14.9,15.0,27.3,27.4],
+  71:[13.4,13.5,15.1,15.2,27.6,27.7]
+};
+
+const BOYS_WFA = {
+  0:[2.1,2.2,2.4,2.5,4.4,4.5],
+  1:[2.9,3.0,3.3,3.4,5.8,5.9],
+  2:[3.8,3.9,4.2,4.3,7.1,7.2],
+  3:[4.4,4.5,4.9,5.0,8.0,8.1],
+  4:[4.9,5.0,5.5,5.6,8.7,8.8],
+  5:[5.3,5.4,5.9,6.0,9.3,9.4],
+  6:[5.7,5.8,6.3,6.4,9.8,9.9],
+  7:[5.9,6.0,6.6,6.7,10.3,10.4],
+  8:[6.2,6.3,6.8,6.9,10.7,10.8],
+  9:[6.4,6.5,7.0,7.1,11.0,11.1],
+  10:[6.6,6.7,7.3,7.4,11.4,11.5],
+  11:[6.8,6.9,7.5,7.6,11.7,11.8],
+  12:[6.9,7.0,7.6,7.7,12.0,12.1],
+  13:[7.1,7.2,7.8,7.9,12.3,12.4],
+  14:[7.2,7.3,8.0,8.1,12.6,12.7],
+  15:[7.4,7.5,8.2,8.3,12.8,12.9],
+  16:[7.5,7.6,8.3,8.4,13.1,13.2],
+  17:[7.7,7.8,8.5,8.6,13.4,13.5],
+  18:[7.8,7.9,8.7,8.8,13.7,13.8],
+  19:[8.0,8.1,8.8,8.9,13.9,14.0],
+  20:[8.1,8.2,9.0,9.1,14.2,14.3],
+  21:[8.2,8.3,9.1,9.2,14.5,14.6],
+  22:[8.4,8.5,9.3,9.4,14.7,14.8],
+  23:[8.5,8.6,9.4,9.5,15.0,15.1],
+  24:[8.6,8.7,9.6,9.7,15.3,15.4],
+  25:[8.8,8.9,9.7,9.8,15.5,15.6],
+  26:[8.9,9.0,9.9,10.0,15.8,15.9],
+  27:[9.0,9.1,10.0,10.1,16.1,16.2],
+  28:[9.1,9.2,10.1,10.2,16.3,16.4],
+  29:[9.2,9.3,10.3,10.4,16.6,16.7],
+  30:[9.4,9.5,10.4,10.5,16.9,17.0],
+  31:[9.5,9.6,10.6,10.7,17.1,17.2],
+  32:[9.6,9.7,10.7,10.8,17.4,17.5],
+  33:[9.7,9.8,10.8,10.9,17.6,17.7],
+  34:[9.8,9.9,10.9,11.0,17.8,17.9],
+  35:[9.9,10.0,11.1,11.2,18.1,18.2],
+  36:[10.0,10.1,11.2,11.3,18.3,18.4],
+  37:[10.1,10.2,11.3,11.4,18.6,18.7],
+  38:[10.2,10.3,11.4,11.5,18.8,18.9],
+  39:[10.3,10.4,11.5,11.6,19.0,19.1],
+  40:[10.4,10.5,11.7,11.8,19.3,19.4],
+  41:[10.5,10.6,11.8,11.9,19.5,19.6],
+  42:[10.6,10.7,11.9,12.0,19.7,19.8],
+  43:[10.7,10.8,12.0,12.1,20.0,20.1],
+  44:[10.8,10.9,12.1,12.2,20.2,20.3],
+  45:[10.9,11.0,12.3,12.4,20.5,20.6],
+  46:[11.0,11.1,12.4,12.5,20.7,20.8],
+  47:[11.1,11.2,12.5,12.6,20.9,21.0],
+  48:[11.2,11.3,12.6,12.7,21.2,21.3],
+  49:[11.3,11.4,12.7,12.8,21.4,21.5],
+  50:[11.4,11.5,12.8,12.9,21.7,21.8],
+  51:[11.5,11.6,13.0,13.1,21.9,22.0],
+  52:[11.6,11.7,13.1,13.2,22.2,22.3],
+  53:[11.7,11.8,13.2,13.3,22.4,22.5],
+  54:[11.8,11.9,13.3,13.4,22.7,22.8],
+  55:[11.9,12.0,13.4,13.5,22.9,23.0],
+  56:[12.0,12.1,13.5,13.6,23.2,23.3],
+  57:[12.1,12.2,13.6,13.7,23.4,23.5],
+  58:[12.2,12.3,13.7,13.8,23.7,23.8],
+  59:[12.3,12.4,13.9,14.0,23.9,24.0],
+  60:[12.4,12.5,14.0,14.1,24.2,24.3],
+  61:[12.7,12.8,14.3,14.4,24.3,24.4],
+  62:[12.8,12.9,14.4,14.5,24.4,24.5],
+  63:[13.0,13.1,14.5,14.6,24.7,24.8],
+  64:[13.1,13.2,14.7,14.8,24.9,25.0],
+  65:[13.2,13.3,14.8,14.9,25.2,25.3],
+  66:[13.3,13.4,14.9,15.0,25.5,25.6],
+  67:[13.4,13.5,15.1,15.2,25.7,25.8],
+  68:[13.6,13.7,15.2,15.3,26.0,26.1],
+  69:[13.7,13.8,15.3,15.4,26.3,26.4],
+  70:[13.8,13.9,15.5,15.6,26.6,26.7],
+  71:[13.9,14.0,15.6,15.7,26.8,26.9]
+};
+
+function getWFAClassification(weight, ageMonths, gender) {
+  if (weight == null || ageMonths == null || !gender) return "Unknown";
+  const table = gender.toLowerCase().startsWith("f") ? GIRLS_WFA : BOYS_WFA;
+  // Clamp age to 0-71, but our app is 0-59; still support
+  let age = Math.floor(parseInt(ageMonths));
+  if (isNaN(age)) return "Unknown";
+  if (age < 0) age = 0;
+  if (age > 71) age = 71;
+  // If age not in table (should be), use closest
+  let row = table[age];
+  if (!row) {
+    // fallback to nearest available
+    let keys = Object.keys(table).map(k=>parseInt(k)).sort((a,b)=>a-b);
+    let nearest = keys.reduce((prev,curr)=> Math.abs(curr-age) < Math.abs(prev-age) ? curr : prev, keys[0]);
+    row = table[nearest];
+  }
+  const [sevMax, uwFrom, uwTo, normFrom, normTo, overMin] = row;
+  // WHO logic: < -3SD = Severely Underweight, -3SD to < -2SD = Underweight, -2SD to +2SD = Normal, > +2SD = Overweight
+  // Use From values as cutoffs to handle 0.1 gaps
+  if (weight < uwFrom) return "Severely Underweight";
+  if (weight < normFrom) return "Underweight";
+  if (weight <= normTo) return "Normal";
+  return "Overweight";
 }
+
+// Keep old name for compatibility but now uses WFA
+function getClassification(weight, ageMonths, gender) {
+  // If called with only 1 arg (old BMI logic), fallback to weight-based generic
+  if (arguments.length === 1) {
+    // old BMI path no longer used; return Normal as fallback
+    return "Normal";
+  }
+  return getWFAClassification(weight, ageMonths, gender);
+}
+
+function getClassificationWithRange(weight, ageMonths, gender) {
+  const status = getWFAClassification(weight, ageMonths, gender);
+  const table = gender && gender.toLowerCase().startsWith("f") ? GIRLS_WFA : BOYS_WFA;
+  let age = Math.floor(parseInt(ageMonths));
+  if (isNaN(age)) age = 0;
+  if (age < 0) age = 0;
+  if (age > 71) age = 71;
+  const row = table[age] || table[0];
+  return { status, range: row };
+}
+
 
 function calculateBMI() {
   const w = parseFloat(document.getElementById("cWeight")?.value);
   const h = parseFloat(document.getElementById("cHeight")?.value);
-  if (!w || !h) {
-    alert("Please enter weight and height first!");
+  const age = parseInt(document.getElementById("cAge")?.value);
+  const gender = document.getElementById("cGender")?.value;
+  if (!w || isNaN(age) || !gender) {
+    alert("Please enter weight, age, and gender first!");
     return null;
   }
-  const hm = h / 100;
-  const bmi = w / (hm * hm);
-  const cls = getClassification(bmi);
+  const bmi = h ? w / ((h/100)*(h/100)) : 0;
+  const cls = getWFAClassification(w, age, gender);
   const box = document.getElementById("bmiResultBox");
   if (box) box.classList.add("show");
   const bv = document.getElementById("bmiValue");
-  if (bv) bv.textContent = bmi.toFixed(2);
+  if (bv) bv.textContent = h ? bmi.toFixed(2) : w.toFixed(1) + " kg";
   const el = document.getElementById("bmiClass");
   if (el) {
     el.textContent = cls;
-    el.className = "badge " + cls;
+    el.className = "badge " + cls.replace(/\s+/g,"-");
   }
-  return { bmi, cls };
+  // Show range info if available
+  const rangeInfo = document.getElementById("rangeInfo");
+  if (rangeInfo) {
+    const table = gender.toLowerCase().startsWith("f") ? GIRLS_WFA : BOYS_WFA;
+    const row = table[age] || table[0];
+    if (row) {
+      rangeInfo.innerHTML = `<small style="color:#666">Range for ${gender}, ${age}mo: SU < ${row[1]}kg | UW ${row[1]}-${row[2]}kg | Normal ${row[3]}-${row[4]}kg | OW > ${row[4]}kg</small>`;
+    }
+  }
+  return { bmi: h ? parseFloat(bmi.toFixed(2)) : w, cls };
+}
+
+function calculateUpdateBMI() {
+  const w = parseFloat(document.getElementById("uWeight")?.value);
+  const h = parseFloat(document.getElementById("uHeight")?.value);
+  const age = parseInt(document.getElementById("uAge")?.value);
+  const gender = document.getElementById("uGender")?.value;
+  if (!w || isNaN(age) || !gender) {
+    alert("Please enter weight, age, and gender first!");
+    return null;
+  }
+  const bmi = h ? w / ((h/100)*(h/100)) : 0;
+  const cls = getWFAClassification(w, age, gender);
+  const box = document.getElementById("uBmiResultBox");
+  if (box) box.classList.add("show");
+  const bv = document.getElementById("uBmiValue");
+  if (bv) bv.textContent = h ? bmi.toFixed(2) : w.toFixed(1) + " kg";
+  const el = document.getElementById("uBmiClass");
+  if (el) {
+    el.textContent = cls;
+    el.className = "badge " + cls.replace(/\s+/g,"-");
+  }
+  return { bmi: h ? parseFloat(bmi.toFixed(2)) : w, cls };
 }
 
 const childForm = document.getElementById("childForm");
@@ -660,7 +888,7 @@ if (childForm) {
         let children = getChildrenSync();
         children.push(data);
         saveChildren(children);
-        alert("âœ… Added! Record for " + data.name);
+        alert(" Added! Record for " + data.name);
         resetForm();
         await loadChildren();
         renderDashboard();
@@ -671,7 +899,7 @@ if (childForm) {
     let children = getChildrenSync();
     children.push(data);
     saveChildren(children);
-    alert("âœ… Added! Record for " + data.name);
+    alert(" Added! Record for " + data.name);
     resetForm();
     renderDashboard();
     renderTable();
@@ -691,20 +919,17 @@ function renderDashboard() {
   if (!el) return;
   const children = getChildren();
   document.getElementById("totalChildren").textContent = children.length;
-  document.getElementById("totalNormal").textContent = children.filter(
-    (c) => c.status === "Normal",
-  ).length;
-  document.getElementById("totalUnder").textContent = children.filter(
-    (c) => c.status === "Underweight",
-  ).length;
+  const normalEl = document.getElementById("totalNormal");
+  if (normalEl) normalEl.textContent = children.filter((c) => c.status === "Normal").length;
+  const underEl = document.getElementById("totalUnder");
+  if (underEl) underEl.textContent = children.filter((c) => c.status === "Underweight").length;
   const overEl = document.getElementById("totalOver");
-  if (overEl)
-    overEl.textContent = children.filter(
-      (c) => c.status === "Overweight",
-    ).length;
-  document.getElementById("totalObese").textContent = children.filter(
-    (c) => c.status === "Obese",
-  ).length;
+  if (overEl) overEl.textContent = children.filter((c) => c.status === "Overweight").length;
+  const obeseEl = document.getElementById("totalObese");
+  // totalObese element now repurposed as Severely Underweight
+  if (obeseEl) obeseEl.textContent = children.filter((c) => c.status === "Severely Underweight").length;
+  const sevEl = document.getElementById("totalSevUnder");
+  if (sevEl) sevEl.textContent = children.filter((c) => c.status === "Severely Underweight").length;
   drawChart(children);
 }
 
@@ -728,18 +953,18 @@ function drawChart(children) {
     ctx.clearRect(0, 0, width, height);
 
     const counts = {
+      "Severely Underweight": children.filter((c) => c.status === "Severely Underweight").length,
       Underweight: children.filter((c) => c.status === "Underweight").length,
       Normal: children.filter((c) => c.status === "Normal").length,
       Overweight: children.filter((c) => c.status === "Overweight").length,
-      Obese: children.filter((c) => c.status === "Obese").length,
     };
     const total = children.length || 1;
     const maxVal = Math.max(...Object.values(counts), 1);
     const colors = {
+      "Severely Underweight": "#d32f2f",
       Underweight: "#ffb300",
       Normal: "#1a7a4c",
-      Overweight: "#ff9800",
-      Obese: "#e65100",
+      Overweight: "#fb8c00",
     };
     const labels = Object.keys(counts);
     const barCount = labels.length;
@@ -820,17 +1045,17 @@ function drawChart(children) {
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const counts = {
+    "Severely Underweight": children.filter((c) => c.status === "Severely Underweight").length,
     Underweight: children.filter((c) => c.status === "Underweight").length,
     Normal: children.filter((c) => c.status === "Normal").length,
     Overweight: children.filter((c) => c.status === "Overweight").length,
-    Obese: children.filter((c) => c.status === "Obese").length,
   };
   const total = children.length || 1;
   const colors = {
+    "Severely Underweight": "#d32f2f",
     Underweight: "#ffb300",
     Normal: "#1a7a4c",
     Overweight: "#fb8c00",
-    Obese: "#bf360c",
   };
   let x = 20;
   ctx.font = "12px Poppins";
@@ -869,7 +1094,7 @@ function renderTable() {
     children
       .map(
         (c) =>
-          `<tr>\n    <td><b>${c.name}</b><br><small style="color:#888;font-size:10px">Added by: ${c.created_by || "-"}</small></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.gender === "Male" ? "ðŸ‘¦ Male" : c.gender === "Female" ? "ðŸ‘§ Female" : c.gender || "-"}</span></td><td>${c.age}</td><td>${c.purok}</td><td style="max-width:200px;min-width:140px;white-space:normal;word-break:break-word;line-height:1.4;font-size:12px;cursor:pointer" title="${c.address} - Click to see full address" onclick="showFullAddressById('${c.id}')" class="address-cell">${c.address || "-"}</td><td>${c.weight}kg</td><td>${c.height}cm</td>\n    <td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.date}</td><td><span style="background:#f3f4f6;padding:4px 8px;border-radius:10px;font-size:11px;font-weight:600" title="Last updated: ${c.updated_at || c.date}">${c.updated_by && c.updated_by !== c.created_by ? "âœï¸ " + c.updated_by : c.created_by || "-"}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')">âœï¸ Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')">ðŸ—‘ï¸ Delete</button></div></td>\n  </tr>`,
+          `<tr>\n    <td><b>${c.name}</b><br><small style="color:#888;font-size:10px">Added by: ${c.created_by || "-"}</small></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.gender === "Male" ? "Male" : c.gender === "Female" ? "Female" : c.gender || "-"}</span></td><td>${c.age}</td><td>${c.purok}</td><td style="max-width:200px;min-width:140px;white-space:normal;word-break:break-word;line-height:1.4;font-size:12px;cursor:pointer" title="${c.address} - Click to see full address" onclick="showFullAddressById('${c.id}')" class="address-cell">${c.address || "-"}</td><td>${c.weight}kg</td><td>${c.height}cm</td>\n    <td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.date}</td><td><span style="background:#f3f4f6;padding:4px 8px;border-radius:10px;font-size:11px;font-weight:600" title="Last updated: ${c.updated_at || c.date}">${c.updated_by && c.updated_by !== c.created_by ? "" + c.updated_by : c.created_by || "-"}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')">Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')">Delete</button></div></td>\n  </tr>`,
       )
       .join("") ||
     `<tr><td colspan=12 style="text-align:center;padding:20px">No records found for "${searchVal}" - try another name</td></tr>`;
@@ -986,7 +1211,7 @@ async function saveUpdateChild() {
         renderTable();
         renderPurok();
         renderFeeding();
-        alert("âœ… Updated! Record for " + data.name);
+        alert(" Updated! Record for " + data.name);
         closeUpdateChildModal();
         // Stay in All Records!
         return;
@@ -999,13 +1224,13 @@ async function saveUpdateChild() {
     renderTable();
     renderPurok();
     renderFeeding();
-    alert("âœ… Updated! Record for " + data.name);
+    alert(" Updated! Record for " + data.name);
     closeUpdateChildModal();
   } catch (err) {
     alert("Update failed: " + (err.message || err));
   } finally {
     if (btn) {
-      btn.textContent = oldText || "ðŸ’¾ Update Record";
+      btn.textContent = oldText || "Update Record";
       btn.disabled = false;
     }
   }
@@ -1099,7 +1324,7 @@ function renderPurok() {
     children
       .map(
         (c) =>
-          `<tr>\n    <td>${c.name}</td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender === "Male" ? "ðŸ‘¦" : c.gender === "Female" ? "ðŸ‘§" : ""} ${c.gender || "-"}</span></td><td>${c.age}m</td><td>${c.address}</td><td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')">âœï¸ Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')">ðŸ—‘ï¸ Delete</button></div></td>\n  </tr>`,
+          `<tr>\n    <td>${c.name}</td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender === "Male" ? "" : c.gender === "Female" ? "" : ""} ${c.gender || "-"}</span></td><td>${c.age}m</td><td>${c.address}</td><td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')">Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')">Delete</button></div></td>\n  </tr>`,
       )
       .join("") || "<tr><td colspan=7>No children in this purok</td></tr>";
 }
@@ -1109,7 +1334,7 @@ function renderFeeding() {
   if (!tbody) return;
   const searchF =
     document.getElementById("feedingSearch")?.value.toLowerCase() || "";
-  let allNeeding = getChildren().filter((c) => c.status === "Underweight");
+  let allNeeding = getChildren().filter((c) => c.status === "Underweight" || c.status === "Severely Underweight");
   let children = [...allNeeding];
   if (searchF)
     children = children.filter(
@@ -1150,38 +1375,18 @@ function renderFeeding() {
       rankingList.innerHTML =
         '<p style="text-align:center;padding:16px;opacity:.6;font-size:13px">No underweight children - great job! No priority needed.</p>';
     } else {
-      rankingList.innerHTML = ranked
+            rankingList.innerHTML = ranked
         .map(([purok, data], idx) => {
           const isTop = idx === 0;
-          const medal =
-            idx === 0
-              ? "ðŸš¨"
-              : idx === 1
-                ? "ðŸ¥ˆ"
-                : idx === 2
-                  ? "ðŸ¥‰"
-                  : ` ${idx + 1}.`;
-          const severityLabel = "Needs Feeding";
-          const barWidth =
-            ranked[0][1].total > 0
-              ? (data.total / ranked[0][1].total) * 100
-              : 0;
-          return `
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:${isTop ? "linear-gradient(135deg,#ffebee,#ffcdd2)" : "#f8faf8"};border:1.5px solid ${isTop ? "#ef9a9a" : "#eef1ef"};${isTop ? "box-shadow:0 2px 10px rgba(229,57,53,.15)" : ""}">
-          <div style="font-size:18px;min-width:32px;text-align:center">${medal}</div>
-          <div style="flex:1">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <b style="font-size:14px;color:${isTop ? "#c62828" : "#222"}">${purok} ${isTop ? " - PRIORITY" : ""}</b><small style="margin-left:8px;background:#ffb300;color:#fff;padding:2px 6px;border-radius:8px;font-size:9px">${severityLabel}</small>
-              <span style="font-size:13px;font-weight:700;background:${isTop ? "#c62828" : "#666"};color:#fff;padding:3px 10px;border-radius:12px">${data.total} ${data.total === 1 ? "child" : "children"}</span>
+          const label = idx === 0 ? "PRIORITY" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : `${idx+1}th`;
+          const percent = allNeeding.length > 0 ? (data.total / allNeeding.length) * 100 : 0;
+          return `<div class="ranking-item ${isTop ? "top" : ""}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin:8px 0;background:${isTop ? "#ffebee" : "#f8faf8"};border:1.5px solid ${isTop ? "#ef9a9a" : "#e8ece9"};border-radius:12px">
+            <div style="font-weight:700;min-width:70px">${label}</div>
+            <div style="flex:1"><b>${purok} ${isTop ? "- PRIORITY" : ""}</b><br><small style="opacity:.7">Underweight: ${data.under} | Total needing: ${data.total}</small>
+              <div style="height:6px;background:#e0e0e0;border-radius:6px;margin-top:6px"><div style="height:6px;width:${percent}%;background:${isTop ? "#e53935" : "#1a7a4c"};border-radius:6px"></div></div>
             </div>
-            <div style="display:flex;gap:8px;font-size:11px;opacity:.7;margin-bottom:6px">
-              <span>Underweight: ${data.under}</span>
-            </div>
-            <div style="height:6px;background:#e0e0e0;border-radius:10px;overflow:hidden">
-              <div style="height:100%;width:${barWidth}%;background:${isTop ? "linear-gradient(90deg,#e53935,#ff7043)" : "linear-gradient(90deg,#999,#bbb)"};border-radius:10px;transition:width .5s"></div>
-            </div>
-          </div>
-        </div>`;
+            <div style="background:${isTop ? "#e53935" : "#666"};color:#fff;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600">${data.total} children</div>
+          </div>`;
         })
         .join("");
     }
@@ -1191,7 +1396,7 @@ function renderFeeding() {
     children
       .map(
         (c) => `<tr>
-    <td><b>${c.name}</b></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender === "Male" ? "ðŸ‘¦" : c.gender === "Female" ? "ðŸ‘§" : ""} ${c.gender || "N/A"}</span></td><td><span style="background:#f0f0f0;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.purok}</span></td><td>${c.age}m</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.bmi}</td><td>${c.address}</td>
+    <td><b>${c.name}</b></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender === "Male" ? "" : c.gender === "Female" ? "" : ""} ${c.gender || "N/A"}</span></td><td><span style="background:#f0f0f0;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.purok}</span></td><td>${c.age}m</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.bmi}</td><td>${c.address}</td>
   </tr>`,
       )
       .join("") ||
@@ -1370,7 +1575,7 @@ function printPurokReport() {
       <p style="margin-top:8px;text-align:justify"><b>Total Number of Children in ${activePurok}: ${total}</b></p>
       <p style="text-align:justify"><b>Purok:</b> ${activePurok} | <b>Office:</b> Ramcar Phase 2 | <b>Coverage:</b> 0-59 Months</p>
     </div>
-    <div class="no-print" style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 24px;background:#1a7a4c;color:#fff;border:none;border-radius:6px;cursor:pointer">ðŸ–¨ï¸ Print</button></div>
+    <div class="no-print" style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 24px;background:#1a7a4c;color:#fff;border:none;border-radius:6px;cursor:pointer"> Print</button></div>
     </body></html>`);
   win.document.close();
   setTimeout(() => win.print(), 300);
@@ -1607,7 +1812,7 @@ async function saveAccountChanges() {
       document.getElementById("userDisplay").textContent =
         updatedUser.name || updatedUser.username;
       alert(
-        `âœ… Account updated!\nUsername: ${oldUsername} â†’ ${newUsername}\nYour ${getChildren().length} child records are still there!\nPlease login with new credentials next time.`,
+        ` Account updated!\nUsername: ${oldUsername} → ${newUsername}\nYour ${getChildren().length} child records are still there!\nPlease login with new credentials next time.`,
       );
       closeAccountModal();
       // Reload children to reflect new username
@@ -1646,7 +1851,7 @@ async function saveAccountChanges() {
         localStorage.setItem(newKey, JSON.stringify(children));
       }
       document.getElementById("userDisplay").textContent = newUsername;
-      alert("âœ… Account updated offline! Records kept.");
+      alert(" Account updated offline! Records kept.");
       closeAccountModal();
       location.reload();
     }
@@ -1770,7 +1975,7 @@ async function confirmDeleteAccount() {
     }
 
     alert(
-      `âœ… Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
+      ` Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
@@ -1880,7 +2085,7 @@ async function confirmDeleteAccount() {
     }
 
     alert(
-      `âœ… Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
+      ` Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
@@ -1923,12 +2128,12 @@ async function initDBStatus() {
   );
   if (isConfigured) {
     console.log(
-      "âœ… Supabase PostgreSQL Connected (badge hidden, connection active) - URL:",
+      " Supabase PostgreSQL Connected (badge hidden, connection active) - URL:",
       typeof SUPABASE_URL !== "undefined" ? SUPABASE_URL : "unknown",
     );
     // Keep badge text for debugging but hidden
     if (statusEl) {
-      statusEl.textContent = "ðŸŸ¢ Supabase PostgreSQL Connected";
+      statusEl.textContent = " Supabase PostgreSQL Connected";
       statusEl.className = "db-status db-connected d-none";
       statusEl.style.display = "none";
     }
@@ -1942,9 +2147,9 @@ async function initDBStatus() {
     if (typeof renderPurok === "function") renderPurok();
     if (typeof renderFeeding === "function") renderFeeding();
   } else {
-    console.log("ðŸŸ¡ Offline Mode - Supabase not configured (badge hidden)");
+    console.log(" Offline Mode - Supabase not configured (badge hidden)");
     if (statusEl) {
-      statusEl.textContent = "ðŸŸ¡ Offline Mode (localStorage)";
+      statusEl.textContent = " Offline Mode (localStorage)";
       statusEl.className = "db-status db-offline d-none";
       statusEl.style.display = "none";
     }
@@ -1968,7 +2173,7 @@ function showFullAddress(name, address) {
   modal.className = "modal-overlay show";
   modal.style.zIndex = "9999";
   modal.innerHTML =
-    '<div class="modal" style="max-width:480px"><div style="text-align:center;margin-bottom:12px"><div style="font-size:32px">ðŸ“</div><h3 style="margin:8px 0 4px 0">' +
+    '<div class="modal" style="max-width:480px"><div style="text-align:center;margin-bottom:12px"><div style="font-size:32px"></div><h3 style="margin:8px 0 4px 0">' +
     name +
     '</h3><p style="font-size:12px;color:#666;margin:0">Complete Address</p></div><div style="background:#f8faf8;border:1.5px solid #e0e4e1;border-radius:12px;padding:16px;margin:16px 0;text-align:left;line-height:1.5;font-size:14px;word-break:break-word">' +
     address +
