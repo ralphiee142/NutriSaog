@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NutriTrack Saog - Dashboard</title>
     <link rel="stylesheet" href="style.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase.js"></script>
   </head>
@@ -15,23 +17,32 @@
       <div class="top-left">
         <img src="logo.png" alt="Barangay Saog" class="topbar-logo" />
         <div>
-          <b>NutriTrack Saog</b><small>Barangay Saog Nutrition Monitoring</small>
+          <b>NutriTrack Saog</b
+          ><small>Barangay Saog Nutrition Monitoring</small>
         </div>
       </div>
       <div class="top-right">
-        <span id="dbStatus" class="db-status d-none"><i class="fa-solid fa-database"></i> Loading DB...</span>
+        <span id="dbStatus" class="db-status d-none">📦 Loading DB...</span>
         <span id="userDisplay" class="user-display"></span>
-        <button onclick="showAccountModal()" class="btn-outline btn-account"><i class="fa-solid fa-gear"></i> Account</button>
-        <button onclick="showLogoutModal()" class="btn-outline btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+        <button onclick="showAccountModal()" class="btn-outline btn-account">
+          ⚙️ Account
+        </button>
+        <button onclick="showLogoutModal()" class="btn-outline btn-logout">
+          ↪️ Logout
+        </button>
       </div>
     </header>
     <div class="layout">
       <aside class="sidebar">
-        <button class="side-btn active" data-view="dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</button>
-        <button class="side-btn" data-view="add"><i class="fa-solid fa-plus"></i> Add Child Record</button>
-        <button class="side-btn" data-view="records"><i class="fa-solid fa-table-list"></i> All Records</button>
-        <button class="side-btn" data-view="purok"><i class="fa-solid fa-location-dot"></i> Purok Monitoring</button>
-        <button class="side-btn" data-view="feeding"><i class="fa-solid fa-bowl-food"></i> Feeding Program List</button>
+        <button class="side-btn active" data-view="dashboard">
+          📊 Dashboard
+        </button>
+        <button class="side-btn" data-view="add">➕ Add Child Record</button>
+        <button class="side-btn" data-view="records">📋 All Records</button>
+        <button class="side-btn" data-view="purok">📍 Purok Monitoring</button>
+        <button class="side-btn" data-view="feeding">
+          🍲 Feeding Program List
+        </button>
         <div class="side-info">
           <p><b>Office Hours:</b> 7:30AM - 4:00PM</p>
           <p><b>Coverage:</b> 0-59 Months</p>
@@ -48,7 +59,7 @@
                   <h3 id="totalChildren">0</h3>
                   <p>Total Children</p>
                 </div>
-                <div class="card-icon"><i class="fa-solid fa-baby"></i></div>
+                <div class="card-icon">👶</div>
               </div>
             </div>
             <div class="card normal">
@@ -82,21 +93,96 @@
           <h2>Add Child Information</h2>
           <form id="childForm" class="form-grid">
             <input type="hidden" id="editId" />
-            <div><label>Child's Full Name *</label><input type="text" id="cName" required placeholder="Enter child's full name" /></div>
-            <div><label>Gender *</label><select id="cGender" required><option value="">Select Gender</option><option value="Male">Male - Lalaki</option><option value="Female">Female - Babae</option></select></div>
-            <div><label>Age (months) 0-59 *</label><input type="number" id="cAge" min="0" max="59" required placeholder="Enter age" /></div>
-            <div><label>Purok *</label><select id="cPurok" required><option value="">Select Purok</option><option>Purok 1</option><option>Purok 2</option><option>Purok 3</option><option>Purok 4</option><option>Purok 5</option><option>Purok 6</option></select></div>
-            <div><label>Complete Address *</label><input type="text" id="cAddress" required placeholder="Enter complete address" /></div>
-            <div><label>Weight (kg) *</label><input type="number" id="cWeight" step="0.1" required placeholder="Enter weight" /></div>
-            <div><label>Height (cm) *</label><input type="number" id="cHeight" step="0.1" required placeholder="Enter height" /></div>
-            <div><label>Date of Monitoring</label><input type="date" id="cDate" /></div>
+            <div>
+              <label>Child's Full Name *</label
+              ><input
+                type="text"
+                id="cName"
+                required
+                placeholder="Enter child's full name"
+              />
+            </div>
+            <div>
+              <label>Gender *</label>
+              <select id="cGender" required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male - Lalaki</option>
+                <option value="Female">Female - Babae</option>
+              </select>
+            </div>
+            <div>
+              <label>Age (months) 0-59 *</label
+              ><input
+                type="number"
+                id="cAge"
+                min="0"
+                max="59"
+                required
+                placeholder="Enter age"
+              />
+            </div>
+            <div>
+              <label>Purok *</label>
+              <select id="cPurok" required>
+                <option value="">Select Purok</option>
+                <option>Purok 1</option>
+                <option>Purok 2</option>
+                <option>Purok 3</option>
+                <option>Purok 4</option>
+                <option>Purok 5</option>
+                <option>Purok 6</option>
+              </select>
+            </div>
+            <div>
+              <label>Complete Address *</label
+              ><input
+                type="text"
+                id="cAddress"
+                required
+                placeholder="Enter complete address"
+              />
+            </div>
+            <div>
+              <label>Weight (kg) *</label
+              ><input
+                type="number"
+                id="cWeight"
+                step="0.1"
+                required
+                placeholder="Enter weight"
+              />
+            </div>
+            <div>
+              <label>Height (cm) *</label
+              ><input
+                type="number"
+                id="cHeight"
+                step="0.1"
+                required
+                placeholder="Enter height"
+              />
+            </div>
+            <div>
+              <label>Date of Monitoring</label><input type="date" id="cDate" />
+            </div>
             <div class="full bmi-result" id="bmiResultBox">
               <div><span>BMI:</span><b id="bmiValue">--</b></div>
               <div><span>Classification (Weight-for-Age):</span><b id="bmiClass">--</b><div id="rangeInfo" style="margin-top:6px"></div></div>
             </div>
             <div class="full actions form-actions-grid">
-              <button type="button" class="btn-secondary" onclick="calculateBMI()"><i class="fa-solid fa-calculator"></i> Calculate BMI</button>
-              <button type="submit" class="btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Record</button>
+              <button
+                type="button"
+                class="btn-secondary"
+                onclick="calculateBMI()"
+              >
+                Calculate BMI
+              </button>
+              <button type="submit" class="btn-primary" id="saveBtn">
+                Save Record
+              </button>
+              <button type="button" class="btn-outline" onclick="resetForm()">
+                Clear
+              </button>
             </div>
           </form>
         </section>
@@ -104,43 +190,402 @@
           <div class="view-head">
             <h2>All Children Records</h2>
             <div class="tools">
-              <button class="btn-outline" onclick="exportAllToExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
-              <button class="btn-outline" onclick="printAllRecords()"><i class="fa-solid fa-print"></i> Print Report</button>
-              <input type="text" id="searchInput" placeholder="Search child name..." />
-              <select id="filterStatus"><option value="">All Status</option><option>Normal</option><option>Underweight</option><option>Severely Underweight</option><option>Overweight</option></select>
+              <button class="btn-outline" onclick="exportAllToExcel()">
+                📊 Export Excel
+              </button>
+              <button class="btn-outline" onclick="printAllRecords()">
+                🖨️ Print Report
+              </button>
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="🔍 Search child name..."
+              />
+              <select id="filterStatus">
+                <option value="">All Status</option>
+                <option>Normal</option>
+                <option>Underweight</option>
+                <option>Severely Underweight</option>
+                <option>Overweight</option>
+              </select>
             </div>
           </div>
-          <div class="table-wrap"><table id="recordsTable"><thead><tr><th>Name</th><th>Gender</th><th>Age(m)</th><th>Purok</th><th>Address</th><th>WT</th><th>HT</th><th>BMI</th><th>Status</th><th>Date</th><th>Updated By</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+          <div class="table-wrap">
+            <table id="recordsTable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Gender</th>
+                  <th>Age(m)</th>
+                  <th>Purok</th>
+                  <th>Address</th>
+                  <th>Wt</th>
+                  <th>Ht</th>
+                  <th>BMI</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Updated By</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </section>
         <section id="view-purok" class="view">
           <h2>Purok Monitoring</h2>
-          <div class="purok-header"><div class="purok-tabs" id="purokTabs"></div><input type="text" id="purokSearch" placeholder="Search in this purok..." oninput="renderPurok()" class="purok-search" /></div>
+          <div class="purok-header">
+            <div class="purok-tabs" id="purokTabs"></div>
+            <input
+              type="text"
+              id="purokSearch"
+              placeholder="🔍 Search in this purok..."
+              oninput="renderPurok()"
+              class="purok-search"
+            />
+          </div>
           <div class="cards" id="purokStats"></div>
-          <div class="export-actions"><button class="btn-outline" onclick="exportPurokToExcel()"><i class="fa-solid fa-file-excel"></i> Export Purok Excel</button><button class="btn-outline" onclick="printPurokReport()"><i class="fa-solid fa-print"></i> Print Purok Report</button></div>
-          <div class="table-wrap"><table id="purokTable"><thead><tr><th>Name</th><th>Gender</th><th>Age</th><th>Address</th><th>BMI</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+          <div class="export-actions">
+            <button class="btn-outline" onclick="exportPurokToExcel()">
+              📊 Export Purok Excel
+            </button>
+            <button class="btn-outline" onclick="printPurokReport()">
+              🖨️ Print Purok Report
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table id="purokTable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Gender</th>
+                  <th>Age</th>
+                  <th>Address</th>
+                  <th>BMI</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </section>
         <section id="view-feeding" class="view">
           <h2>Feeding Program Priority List</h2>
-          <p>Auto-generated: List of all Underweight & Severely Underweight children. Priority purok ranking shows which areas need feeding program the most.</p>
+          <p>
+            Auto-generated: List of all Underweight children. Priority purok
+            ranking shows which areas need feeding program the most.
+          </p>
           <div class="cards">
-            <div class="card under"><h3 id="feedTotal">0</h3><p>Needs Feeding (Underweight)</p></div>
-            <div class="card"><h3 id="feedPurokCount">0</h3><p>Affected Puroks</p></div>
-            <div class="card card-priority"><h3 id="topPurokName" class="card-priority-title">-</h3><p><i class="fa-solid fa-fire"></i> Priority Purok (Most Cases)</p></div>
+            <div class="card under">
+              <h3 id="feedTotal">0</h3>
+              <p>Needs Feeding (Underweight)</p>
+            </div>
+            <div class="card">
+              <h3 id="feedPurokCount">0</h3>
+              <p>Affected Puroks</p>
+            </div>
+            <div class="card card-priority">
+              <h3 id="topPurokName" class="card-priority-title">-</h3>
+              <p>🔥 Priority Purok (Most Cases)</p>
+            </div>
           </div>
           <div id="purokPriorityBox" class="priority-box">
-            <h4 class="priority-title"><i class="fa-solid fa-ranking-star"></i> Purok Priority Ranking - Feeding Program</h4>
-            <p class="priority-desc">Ranked by number of Underweight children. The top purok should be prioritized for feeding program.</p>
+            <h4 class="priority-title">
+              📊 Purok Priority Ranking - Feeding Program
+            </h4>
+            <p class="priority-desc">
+              Ranked by number of Underweight children. The top purok should be
+              prioritized for feeding program.
+            </p>
             <div id="purokRankingList" class="ranking-list"></div>
           </div>
-          <div class="feeding-tools"><input type="text" id="feedingSearch" placeholder="Search name for feeding..." oninput="renderFeeding()" class="search-input-large" /><div class="feeding-actions"><button class="btn-outline" onclick="exportFeedingToExcel()"><i class="fa-solid fa-file-excel"></i> Export Feeding Excel</button><button class="btn-outline" onclick="printFeedingReport()"><i class="fa-solid fa-print"></i> Print Feeding Report</button></div></div>
-          <div class="table-wrap"><table id="feedingTable"><thead><tr><th>Name</th><th>Gender</th><th>Age</th><th>Purok</th><th>Address</th><th>Weight</th><th>Status</th><th>Date</th></tr></thead><tbody></tbody></table></div>
+          <div class="feeding-tools">
+            <input
+              type="text"
+              id="feedingSearch"
+              placeholder="🔍 Search name for feeding..."
+              oninput="renderFeeding()"
+              class="search-input-large"
+            />
+            <button class="btn-secondary" onclick="exportFeedingToExcel()">
+              📊 Export Excel
+            </button>
+            <button class="btn-primary" onclick="printFeedingReport()">
+              🖨️ Print Report
+            </button>
+          </div>
+          <div id="printHeader" class="print-header-hidden">
+            <h2 class="print-title">
+              Barangay Saog - Feeding Program Priority List
+            </h2>
+            <p class="print-sub">
+              Office Hours: 7:30AM - 4:00PM | Coverage: 0-59 Months | Generated:
+              <span id="printDate"></span>
+            </p>
+          </div>
+          <div class="table-wrap">
+            <table id="feedingTable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Gender</th>
+                  <th>Purok</th>
+                  <th>Age</th>
+                  <th>Status</th>
+                  <th>BMI</th>
+                  <th>Address</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </section>
       </main>
     </div>
-    <div class="modal-overlay" id="logoutModal"><div class="modal"><h3>Confirm Logout?</h3><p>Are you sure you want to logout?</p><div class="modal-actions"><button class="btn-outline" onclick="closeLogoutModal()">Cancel</button><button class="btn-primary" onclick="confirmLogout()">Logout</button></div></div></div>
-    <div class="modal-overlay" id="accountModal"><div class="modal modal-account"><button class="modal-close-x" onclick="closeAccountModal()">X</button><div class="account-header"><div class="account-icon"><i class="fa-solid fa-user-gear"></i></div><h3>Account Settings</h3><p class="account-sub">Manage your login credentials</p></div><div class="account-form"><label class="account-label">Current Username: <b id="currentUsernameDisplay">-</b></label><label class="account-label">New Username (leave blank to keep current)</label><input type="text" id="newUsername" placeholder="Enter new username" class="account-input" /><label class="account-label">Current Password *</label><div class="pass-wrap"><input type="password" id="currentPassword" placeholder="Enter current password" class="account-input" /><button type="button" class="show-pass" onclick="togglePass('currentPassword', this)">Show</button></div><label class="account-label">New Password (leave blank to keep current)</label><div class="pass-wrap"><input type="password" id="newPassword" placeholder="Enter new password (min 6 chars)" class="account-input" /><button type="button" class="show-pass" onclick="togglePass('newPassword', this)">Show</button></div><label class="account-label">Confirm New Password</label><input type="password" id="newPassword2" placeholder="Confirm new password" class="account-input" /><div class="account-note"><b>Note:</b> Your child records will remain. Only login credentials will change.</div></div><div class="account-actions"><button onclick="showDeleteAccountModal()" class="btn-delete-account"><i class="fa-solid fa-trash-can"></i> Delete Account</button><button class="btn-primary btn-save-account" onclick="saveAccountChanges()" id="saveAccountBtn"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button></div><div class="account-cancel-wrap"><button class="btn-outline btn-cancel-account" onclick="closeAccountModal()">Cancel</button></div><p class="account-delete-hint">Delete removes account only. Child records will be kept.</p></div></div>
-    <div class="modal-overlay" id="deleteAccountModal"><div class="modal modal-delete-account"><div class="delete-account-header"><div class="delete-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><h3 class="delete-title">Delete Account?</h3><p class="delete-sub">Are you sure you want to <b>permanently delete</b> your account?</p></div><div class="delete-info-box"><p><b>Username:</b> <span id="deleteAccountUsername">-</span></p><p><b>Records:</b> <span id="deleteAccountRecords">0</span> Your child records will be kept</p><p class="delete-warning">This action cannot be undone!</p></div><div class="delete-confirm-wrap"><label class="account-label">Type your username to confirm: <b id="deleteConfirmUsernameLabel">-</b></label><input type="text" id="deleteConfirmInput" placeholder="Type username to confirm" class="account-input delete-confirm-input" /></div><div class="modal-actions"><button class="btn-outline" onclick="closeDeleteAccountModal()">Cancel</button><button class="btn-delete btn-confirm-delete" onclick="confirmDeleteAccount()" id="confirmDeleteAccountBtn"><i class="fa-solid fa-trash-can"></i> Yes, Delete My Account</button></div></div></div>
-    <div class="modal-overlay" id="updateChildModal"><div class="modal modal-update-child"><button class="modal-close-x" onclick="closeUpdateChildModal()">X</button><div class="update-child-header"><div class="update-child-icon"><i class="fa-solid fa-pen-to-square"></i></div><h3>Update Child Information</h3><p class="update-child-sub">Edit the child record - stays in All Records</p></div><form id="updateChildForm" class="update-form"><input type="hidden" id="uEditId" /><div class="update-grid"><div class="update-field"><label>Child's Full Name *</label><input type="text" id="uName" required /></div><div class="update-field"><label>Gender *</label><select id="uGender" required><option value="">Select Gender</option><option value="Male">Male - Lalaki</option><option value="Female">Female - Babae</option></select></div><div class="update-field"><label>Age (months) 0-59 *</label><input type="number" id="uAge" min="0" max="59" required /></div><div class="update-field"><label>Purok *</label><select id="uPurok" required><option value="">Select Purok</option><option>Purok 1</option><option>Purok 2</option><option>Purok 3</option><option>Purok 4</option><option>Purok 5</option><option>Purok 6</option></select></div><div class="update-field"><label>Complete Address *</label><input type="text" id="uAddress" required /></div><div class="update-field"><label>Weight (kg) *</label><input type="number" id="uWeight" step="0.1" required /></div><div class="update-field"><label>Height (cm) *</label><input type="number" id="uHeight" step="0.1" required /></div><div class="update-field"><label>Date of Monitoring</label><input type="date" id="uDate" /></div></div><div class="bmi-result" id="uBmiResultBox"><div><span>BMI:</span><b id="uBmiValue">--</b></div><div><span>CLASSIFICATION (WFA):</span><b id="uBmiClass" class="badge">--</b></div></div><div class="update-actions"><button type="button" class="btn-secondary" onclick="calculateUpdateBMI()"><i class="fa-solid fa-calculator"></i> Calculate</button><button type="button" class="btn-outline" onclick="closeUpdateChildModal()">Cancel</button><button type="button" class="btn-primary" onclick="saveUpdateChild()"><i class="fa-solid fa-floppy-disk"></i> Update Record</button></div></form></div></div>
+    <div class="modal-overlay" id="logoutModal">
+      <div class="modal">
+        <div class="logout-icon">👋</div>
+        <h3>Confirm Logout?</h3>
+        <p>Are you sure you want to logout from NutriTrack Saog?</p>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="closeLogoutModal()">
+            Cancel
+          </button>
+          <button
+            class="btn-secondary btn-logout-confirm"
+            onclick="confirmLogout()"
+          >
+            Yes, Logout
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="deleteModal">
+      <div class="modal">
+        <h3>Delete Record?</h3>
+        <p id="deleteMsg">Are you sure you want to delete this child record?</p>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="closeDeleteModal()">
+            Cancel
+          </button>
+          <button class="btn-delete" onclick="confirmDelete()">
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="accountModal">
+      <div class="modal modal-account">
+        <div class="account-header">
+          <div class="account-icon">⚙️</div>
+          <h3>Account Settings</h3>
+          <p class="account-sub">
+            Change username & password - your records will stay!
+          </p>
+        </div>
+        <div class="account-form">
+          <label class="account-label"
+            >Current Username: <b id="currentUserLabel">-</b></label
+          >
+          <label class="account-label mt-14">New Username *</label>
+          <input
+            type="text"
+            id="newUsername"
+            placeholder="New username"
+            class="account-input"
+          />
+          <label class="account-label">New Password *</label>
+          <div class="account-pass-wrap">
+            <input
+              type="password"
+              id="newPassword"
+              placeholder="New password"
+              class="account-input account-input-pass"
+            />
+            <button
+              type="button"
+              onclick="togglePass('newPassword', this)"
+              class="show-pass account-show-btn"
+            >
+              Show
+            </button>
+          </div>
+          <label class="account-label">Confirm New Password *</label>
+          <input
+            type="password"
+            id="newPassword2"
+            placeholder="Confirm new password"
+            class="account-input"
+          />
+          <div class="account-note">
+            <b>📌 Note:</b> Your child records (Total Children, etc.) will
+            remain. Only login credentials will change. Old username's records
+            will be transferred to new username.
+          </div>
+        </div>
+        <div class="account-actions">
+          <button onclick="showDeleteAccountModal()" class="btn-delete-account">
+            🗑️ Delete Account
+          </button>
+          <button
+            class="btn-primary btn-save-account"
+            onclick="saveAccountChanges()"
+            id="saveAccountBtn"
+          >
+            💾 Save Changes
+          </button>
+        </div>
+        <div class="account-cancel-wrap">
+          <button
+            class="btn-outline btn-cancel-account"
+            onclick="closeAccountModal()"
+          >
+            Cancel
+          </button>
+        </div>
+        <p class="account-delete-hint">
+          Delete removes account only. Child records will be kept in the system.
+        </p>
+      </div>
+    </div>
+    <div class="modal-overlay" id="deleteAccountModal">
+      <div class="modal modal-delete-account">
+        <div class="delete-account-header">
+          <div class="delete-icon">⚠️</div>
+          <h3 class="delete-title">Delete Account?</h3>
+          <p class="delete-sub">
+            Are you sure you want to <b>permanently delete</b> your account?
+          </p>
+        </div>
+        <div class="delete-info-box">
+          <p><b>Username:</b> <span id="deleteAccountUsername">-</span></p>
+          <p>
+            <b>Records:</b> <span id="deleteAccountRecords">0</span> Your child
+            records will be kept in the system
+          </p>
+          <p class="delete-warning">
+            ❗ This action cannot be undone! Your account will be permanently
+            removed, but all child records will be kept.
+          </p>
+        </div>
+        <div class="delete-confirm-wrap">
+          <label class="account-label"
+            >Type your username to confirm:
+            <b id="deleteConfirmUsernameLabel">-</b></label
+          >
+          <input
+            type="text"
+            id="deleteConfirmInput"
+            placeholder="Type username to confirm"
+            class="account-input delete-confirm-input"
+          />
+        </div>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="closeDeleteAccountModal()">
+            Cancel
+          </button>
+          <button
+            class="btn-delete btn-confirm-delete"
+            onclick="confirmDeleteAccount()"
+            id="confirmDeleteAccountBtn"
+          >
+            🗑️ Yes, Delete My Account
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="updateChildModal">
+      <div class="modal modal-update-child">
+        <button class="modal-close-x" onclick="closeUpdateChildModal()">
+          ✕
+        </button>
+        <div class="update-child-header">
+          <div class="update-child-icon">✏️</div>
+          <h3>Update Child Information</h3>
+          <p class="update-child-sub">
+            Edit the child record - stays in All Records
+          </p>
+        </div>
+        <form id="updateChildForm" class="update-form">
+          <input type="hidden" id="uEditId" />
+          <div class="update-grid">
+            <div class="update-field">
+              <label>Child's Full Name *</label
+              ><input type="text" id="uName" required />
+            </div>
+            <div class="update-field">
+              <label>Gender *</label>
+              <select id="uGender" required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male - Lalaki</option>
+                <option value="Female">Female - Babae</option>
+              </select>
+            </div>
+            <div class="update-field">
+              <label>Age (months) 0-59 *</label
+              ><input type="number" id="uAge" min="0" max="59" required />
+            </div>
+            <div class="update-field">
+              <label>Purok *</label>
+              <select id="uPurok" required>
+                <option value="">Select Purok</option>
+                <option>Purok 1</option>
+                <option>Purok 2</option>
+                <option>Purok 3</option>
+                <option>Purok 4</option>
+                <option>Purok 5</option>
+                <option>Purok 6</option>
+              </select>
+            </div>
+            <div class="update-field">
+              <label>Complete Address *</label
+              ><input type="text" id="uAddress" required />
+            </div>
+            <div class="update-field">
+              <label>Weight (kg) *</label
+              ><input type="number" id="uWeight" step="0.1" required />
+            </div>
+            <div class="update-field">
+              <label>Height (cm) *</label
+              ><input type="number" id="uHeight" step="0.1" required />
+            </div>
+            <div class="update-field">
+              <label>Date of Monitoring</label><input type="date" id="uDate" />
+            </div>
+          </div>
+          <div class="bmi-result" id="uBmiResultBox">
+            <div><span>BMI:</span><b id="uBmiValue">--</b></div>
+            <div>
+              <span>CLASSIFICATION (WFA):</span><b id="uBmiClass" class="badge">--</b>
+            </div>
+          </div>
+          <div class="update-actions">
+            <button
+              type="button"
+              class="btn-secondary"
+              onclick="calculateUpdateBMI()"
+            >
+              Calculate BMI
+            </button>
+            <button
+              type="button"
+              class="btn-outline"
+              onclick="closeUpdateChildModal()"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn-primary"
+              onclick="saveUpdateChild()"
+            >
+              💾 Update Record
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
     <script src="script.js"></script>
   </body>
 </html>
