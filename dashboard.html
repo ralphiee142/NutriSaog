@@ -165,24 +165,28 @@
             <div>
               <label>Date of Monitoring</label><input type="date" id="cDate" />
             </div>
-            <div class="full bmi-result" id="bmiResultBox">
-              <div><span>BMI:</span><b id="bmiValue">--</b></div>
-              <div><span>Classification (Weight-for-Age):</span><b id="bmiClass">--</b><div id="rangeInfo" style="margin-top:6px"></div></div>
-            </div>
             <div class="full actions form-actions-grid">
               <button
                 type="button"
                 class="btn-secondary"
                 onclick="calculateBMI()"
+                style="background:#111;color:#fff"
               >
                 Calculate BMI
               </button>
-              <button type="submit" class="btn-primary" id="saveBtn">
+              <button type="submit" class="btn-primary" id="saveBtn" style="background:linear-gradient(135deg,#1a7a4c,#2e9b5a)">
                 Save Record
               </button>
               <button type="button" class="btn-outline" onclick="resetForm()">
                 Clear
               </button>
+            </div>
+            <div class="full bmi-result" id="bmiResultBox" style="display:none;margin-top:16px;background:#f6faf7;border:1.5px solid #c8e6c9;border-radius:14px;padding:14px 16px">
+              <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:10px">
+                <div><span style="font-size:12px;color:#666">BMI:</span> <b id="bmiValue" style="font-size:16px;color:#111">--</b></div>
+                <div><span style="font-size:12px;color:#666">Classification:</span> <b id="bmiClass" class="badge" style="margin-left:6px;padding:4px 10px;border-radius:20px;font-size:12px">--</b></div>
+              </div>
+              <div id="rangeInfo" style="margin-top:6px"></div>
             </div>
           </form>
         </section>
@@ -557,7 +561,8 @@
           <div class="bmi-result" id="uBmiResultBox">
             <div><span>BMI:</span><b id="uBmiValue">--</b></div>
             <div>
-              <span>CLASSIFICATION (WFA):</span><b id="uBmiClass" class="badge">--</b>
+              <span>CLASSIFICATION (WFA):</span
+              ><b id="uBmiClass" class="badge">--</b>
             </div>
           </div>
           <div class="update-actions">
