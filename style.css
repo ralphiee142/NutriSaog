@@ -1695,22 +1695,3 @@ canvas {
   flex: 1;
   max-height: calc(100vh - 180px);
 }
-
-/* === WHO WFA classifications - new === */
-.card.severely {
-  background: linear-gradient(135deg, #ffcdd2 0%, #ef9a9a 100%);
-  border-left: 5px solid #c62828;
-}
-.card.severely h3 { color: #b71c1c; }
-.card.severely p { color: #c62828; }
-
-.badge.Severely-Underweight, .badge.Severely\ Underweight {
-  background: #c62828;
-  color: #fff;
-}
-.badge.Underweight { background: #ffb300; color:#000; }
-.badge.Normal { background:#1a7a4c; color:#fff; }
-.badge.Overweight { background:#fb8c00; color:#fff; }
-.badge.Obese { background:#bf360c; color:#fff; } /* legacy */
-
-#rangeInfo { width:100%; margin-top:8px; }
