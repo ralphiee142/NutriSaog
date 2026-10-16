@@ -1050,11 +1050,13 @@ function calculateBMI() {
     return null;
   }
   const bmi = h ? w / ((h / 100) * (h / 100)) : 0;
-  const wfa = getWFAClassification(w, age, gender);
+  // OPTION 2: BMI value ang itatapat sa WFA table (user request)
+  const valueForTable = h ? bmi : w;
+  const wfa = getWFAClassification(valueForTable, age, gender);
   const wfhResult = h ? getWFHClassification(w, h, gender) : null;
   const finalStatus = wfa; // Keep WFA as primary for dashboard count
   const box = document.getElementById("bmiResultBox");
-  if (box) { box.classList.add("show"); box.style.display="block"; }
+  if (box) box.classList.add("show");
   const bv = document.getElementById("bmiValue");
   if (bv) bv.textContent = h ? bmi.toFixed(2) : w.toFixed(1) + " kg";
   const el = document.getElementById("bmiClass");
@@ -1068,11 +1070,11 @@ function calculateBMI() {
     const row = table[age] || table[0];
     let html = "";
     if (row) {
-      html += `<div style="background:#fff;padding:10px 12px;border-radius:10px;border:1px solid #e0e0e0;font-size:13px;line-height:1.5;color:#222">WFA Range (${gender}, ${age}mo): SU &lt; ${row[1]}kg | UW ${row[1]}-${row[2]}kg |<br>Normal ${row[3]}-${row[4]}kg | OW &gt;${row[4]}kg</div>`;
+      html += `<div style="background:#fff;padding:8px;border-radius:8px;border:1px solid #ddd;margin-bottom:6px"><b>WFA Range (${gender}, ${age}mo):</b><br>Severely Underweight: &lt; ${row[1]}kg | Underweight: ${row[1]}-${row[2]}kg | Normal: ${row[3]}-${row[4]}kg | Overweight: &gt; ${row[4]}kg<br><small>Exact from table: &lt;-3SD=${row[0]} | -3SD=${row[1]} | <-2SD=${row[2]} | -2SD=${row[3]} | +2SD=${row[4]} | &gt;+2SD=${row[5]}</small></div>`;
     }
     if (wfhResult) {
       const r = wfhResult.range;
-      html += `<div style="background:#fff;padding:10px 12px;border-radius:10px;border:1px solid #e0e0e0;font-size:13px;line-height:1.5;color:#222;margin-top:8px">WFH Range (${gender}, ${wfhResult.heightKey}cm): SU &lt; ${r[1]}kg | UW ${r[1]}-${r[2]}kg |<br>Normal ${r[2]}-${r[5]}kg | OW &gt;${r[5]}kg</div>`;
+      html += `<div style="background:#e8f5e9;padding:8px;border-radius:8px;border:1px solid #c8e6c9"><b>WFH Range (${gender}, ${wfhResult.heightKey}cm):</b><br>-3SD=${r[0]}kg | -2SD=${r[1]}kg | -1SD=${r[2]}kg | Median=${r[3]}kg | +1SD=${r[4]}kg | +2SD=${r[5]}kg | +3SD=${r[6]}kg<br><b>Status: ${wfhResult.status}</b></div>`;
     }
     rangeInfo.innerHTML = html;
   }
@@ -1089,10 +1091,12 @@ function calculateUpdateBMI() {
     return null;
   }
   const bmi = h ? w / ((h / 100) * (h / 100)) : 0;
-  const wfa = getWFAClassification(w, age, gender);
+  // OPTION 2: BMI value ang itatapat sa WFA table (user request)
+  const valueForTable = h ? bmi : w;
+  const wfa = getWFAClassification(valueForTable, age, gender);
   const wfhResult = h ? getWFHClassification(w, h, gender) : null;
   const box = document.getElementById("uBmiResultBox");
-  if (box) { box.classList.add("show"); box.style.display="block"; }
+  if (box) box.classList.add("show");
   const bv = document.getElementById("uBmiValue");
   if (bv) bv.textContent = h ? bmi.toFixed(2) : w.toFixed(1) + " kg";
   const el = document.getElementById("uBmiClass");
@@ -1421,7 +1425,7 @@ function calculateUpdateBMI() {
   const bmi = w / (hm * hm);
   const cls = getClassification(bmi);
   const box = document.getElementById("uBmiResultBox");
-  if (box) { box.classList.add("show"); box.style.display="block"; }
+  if (box) box.classList.add("show");
   const bv = document.getElementById("uBmiValue");
   if (bv) bv.textContent = bmi.toFixed(2);
   const el = document.getElementById("uBmiClass");
