@@ -156,7 +156,7 @@ if (registerForm) {
           .insert([{ name, username: u, password: p }])
           .select();
         if (!error) {
-          alert("Registered successfully! You can now log in.");
+          alert("Registered successfully in Supabase! You can now log in.");
           document.querySelector("[data-tab=login]")?.click();
           return;
         }
@@ -588,33 +588,261 @@ async function deleteSingleChildFromSupabase(id) {
   }
 }
 
-function getClassification(bmi) {
-  if (bmi < 15) return "Underweight";
-  if (bmi <= 18.4) return "Normal";
-  if (bmi <= 20) return "Overweight";
-  return "Obese";
+
+// === WHO CHILD GROWTH STANDARDS - Weight for Age 0-71 months ===
+// Based on printed tables: Girls (first pic) and Boys (second pic)
+// Format per age: [severely_max, underweight_from, underweight_to, normal_from, normal_to, overweight_min]
+
+const GIRLS_WFA = {
+  0:[2.0,2.1,2.3,2.4,4.2,4.3],
+  1:[2.7,2.8,3.1,3.2,5.5,5.6],
+  2:[3.4,3.5,3.8,3.9,6.6,6.7],
+  3:[4.0,4.1,4.4,4.5,7.5,7.6],
+  4:[4.4,4.5,4.9,5.0,8.2,8.3],
+  5:[4.8,4.9,5.3,5.4,8.8,8.9],
+  6:[5.1,5.2,5.6,5.7,9.3,9.4],
+  7:[5.3,5.4,5.9,6.0,9.8,9.9],
+  8:[5.6,5.7,6.2,6.3,10.2,10.3],
+  9:[5.8,5.9,6.4,6.5,10.5,10.6],
+  10:[5.9,6.0,6.6,6.7,10.9,11.0],
+  11:[6.1,6.2,6.8,6.9,11.2,11.3],
+  12:[6.3,6.4,6.9,7.0,11.5,11.6],
+  13:[6.4,6.5,7.1,7.2,11.8,11.9],
+  14:[6.6,6.7,7.3,7.4,12.1,12.2],
+  15:[6.7,6.8,7.5,7.6,12.4,12.5],
+  16:[6.9,7.0,7.6,7.7,12.6,12.7],
+  17:[7.0,7.1,7.8,7.9,12.9,13.0],
+  18:[7.2,7.3,8.0,8.1,13.2,13.3],
+  19:[7.3,7.4,8.1,8.2,13.5,13.6],
+  20:[7.5,7.6,8.3,8.4,13.7,13.8],
+  21:[7.6,7.7,8.5,8.6,14.0,14.1],
+  22:[7.8,7.9,8.6,8.7,14.3,14.4],
+  23:[7.9,8.0,8.8,8.9,14.6,14.7],
+  24:[8.1,8.2,8.9,9.0,14.8,14.9],
+  25:[8.2,8.3,9.1,9.2,15.1,15.2],
+  26:[8.4,8.5,9.3,9.4,15.4,15.5],
+  27:[8.5,8.6,9.4,9.5,15.7,15.8],
+  28:[8.6,8.7,9.6,9.7,16.0,16.1],
+  29:[8.8,8.9,9.7,9.8,16.2,16.3],
+  30:[8.9,9.0,9.9,10.0,16.5,16.6],
+  31:[9.0,9.1,10.0,10.1,16.8,16.9],
+  32:[9.1,9.2,10.2,10.3,17.1,17.2],
+  33:[9.3,9.4,10.3,10.4,17.3,17.4],
+  34:[9.4,9.5,10.4,10.5,17.6,17.7],
+  35:[9.5,9.6,10.6,10.7,17.9,18.0],
+  36:[9.6,9.7,10.7,10.8,18.1,18.2],
+  37:[9.7,9.8,10.8,10.9,18.4,18.5],
+  38:[9.8,9.9,11.0,11.1,18.7,18.8],
+  39:[9.9,10.0,11.1,11.2,19.0,19.1],
+  40:[10.1,10.2,11.2,11.3,19.2,19.3],
+  41:[10.2,10.3,11.4,11.5,19.5,19.6],
+  42:[10.3,10.4,11.5,11.6,19.8,19.9],
+  43:[10.4,10.5,11.6,11.7,20.1,20.2],
+  44:[10.5,10.6,11.7,11.8,20.4,20.5],
+  45:[10.6,10.7,11.9,12.0,20.7,20.8],
+  46:[10.7,10.8,12.0,12.1,20.9,21.0],
+  47:[10.8,10.9,12.1,12.2,21.2,21.3],
+  48:[10.9,11.0,12.2,12.3,21.5,21.6],
+  49:[11.0,11.1,12.3,12.4,21.8,21.9],
+  50:[11.1,11.2,12.4,12.5,22.1,22.2],
+  51:[11.2,11.3,12.6,12.7,22.4,22.5],
+  52:[11.3,11.4,12.7,12.8,22.6,22.7],
+  53:[11.4,11.5,12.8,12.9,22.9,23.0],
+  54:[11.5,11.6,12.9,13.0,23.2,23.3],
+  55:[11.6,11.7,13.1,13.2,23.5,23.6],
+  56:[11.7,11.8,13.2,13.3,23.8,23.9],
+  57:[11.8,11.9,13.3,13.4,24.1,24.2],
+  58:[11.9,12.0,13.4,13.5,24.4,24.5],
+  59:[12.0,12.1,13.5,13.6,24.6,24.7],
+  60:[12.1,12.2,13.6,13.7,24.7,24.8],
+  61:[12.4,12.5,13.9,14.0,24.8,24.9],
+  62:[12.5,12.6,14.0,14.1,25.1,25.2],
+  63:[12.6,12.7,14.1,14.2,25.4,25.5],
+  64:[12.7,12.8,14.2,14.3,25.6,25.7],
+  65:[12.8,12.9,14.3,14.4,25.9,26.0],
+  66:[12.9,13.0,14.5,14.6,26.2,26.3],
+  67:[13.0,13.1,14.6,14.7,26.5,26.6],
+  68:[13.1,13.2,14.7,14.8,26.7,26.8],
+  69:[13.2,13.3,14.8,14.9,27.0,27.1],
+  70:[13.3,13.4,14.9,15.0,27.3,27.4],
+  71:[13.4,13.5,15.1,15.2,27.6,27.7]
+};
+
+const BOYS_WFA = {
+  0:[2.1,2.2,2.4,2.5,4.4,4.5],
+  1:[2.9,3.0,3.3,3.4,5.8,5.9],
+  2:[3.8,3.9,4.2,4.3,7.1,7.2],
+  3:[4.4,4.5,4.9,5.0,8.0,8.1],
+  4:[4.9,5.0,5.5,5.6,8.7,8.8],
+  5:[5.3,5.4,5.9,6.0,9.3,9.4],
+  6:[5.7,5.8,6.3,6.4,9.8,9.9],
+  7:[5.9,6.0,6.6,6.7,10.3,10.4],
+  8:[6.2,6.3,6.8,6.9,10.7,10.8],
+  9:[6.4,6.5,7.0,7.1,11.0,11.1],
+  10:[6.6,6.7,7.3,7.4,11.4,11.5],
+  11:[6.8,6.9,7.5,7.6,11.7,11.8],
+  12:[6.9,7.0,7.6,7.7,12.0,12.1],
+  13:[7.1,7.2,7.8,7.9,12.3,12.4],
+  14:[7.2,7.3,8.0,8.1,12.6,12.7],
+  15:[7.4,7.5,8.2,8.3,12.8,12.9],
+  16:[7.5,7.6,8.3,8.4,13.1,13.2],
+  17:[7.7,7.8,8.5,8.6,13.4,13.5],
+  18:[7.8,7.9,8.7,8.8,13.7,13.8],
+  19:[8.0,8.1,8.8,8.9,13.9,14.0],
+  20:[8.1,8.2,9.0,9.1,14.2,14.3],
+  21:[8.2,8.3,9.1,9.2,14.5,14.6],
+  22:[8.4,8.5,9.3,9.4,14.7,14.8],
+  23:[8.5,8.6,9.4,9.5,15.0,15.1],
+  24:[8.6,8.7,9.6,9.7,15.3,15.4],
+  25:[8.8,8.9,9.7,9.8,15.5,15.6],
+  26:[8.9,9.0,9.9,10.0,15.8,15.9],
+  27:[9.0,9.1,10.0,10.1,16.1,16.2],
+  28:[9.1,9.2,10.1,10.2,16.3,16.4],
+  29:[9.2,9.3,10.3,10.4,16.6,16.7],
+  30:[9.4,9.5,10.4,10.5,16.9,17.0],
+  31:[9.5,9.6,10.6,10.7,17.1,17.2],
+  32:[9.6,9.7,10.7,10.8,17.4,17.5],
+  33:[9.7,9.8,10.8,10.9,17.6,17.7],
+  34:[9.8,9.9,10.9,11.0,17.8,17.9],
+  35:[9.9,10.0,11.1,11.2,18.1,18.2],
+  36:[10.0,10.1,11.2,11.3,18.3,18.4],
+  37:[10.1,10.2,11.3,11.4,18.6,18.7],
+  38:[10.2,10.3,11.4,11.5,18.8,18.9],
+  39:[10.3,10.4,11.5,11.6,19.0,19.1],
+  40:[10.4,10.5,11.7,11.8,19.3,19.4],
+  41:[10.5,10.6,11.8,11.9,19.5,19.6],
+  42:[10.6,10.7,11.9,12.0,19.7,19.8],
+  43:[10.7,10.8,12.0,12.1,20.0,20.1],
+  44:[10.8,10.9,12.1,12.2,20.2,20.3],
+  45:[10.9,11.0,12.3,12.4,20.5,20.6],
+  46:[11.0,11.1,12.4,12.5,20.7,20.8],
+  47:[11.1,11.2,12.5,12.6,20.9,21.0],
+  48:[11.2,11.3,12.6,12.7,21.2,21.3],
+  49:[11.3,11.4,12.7,12.8,21.4,21.5],
+  50:[11.4,11.5,12.8,12.9,21.7,21.8],
+  51:[11.5,11.6,13.0,13.1,21.9,22.0],
+  52:[11.6,11.7,13.1,13.2,22.2,22.3],
+  53:[11.7,11.8,13.2,13.3,22.4,22.5],
+  54:[11.8,11.9,13.3,13.4,22.7,22.8],
+  55:[11.9,12.0,13.4,13.5,22.9,23.0],
+  56:[12.0,12.1,13.5,13.6,23.2,23.3],
+  57:[12.1,12.2,13.6,13.7,23.4,23.5],
+  58:[12.2,12.3,13.7,13.8,23.7,23.8],
+  59:[12.3,12.4,13.9,14.0,23.9,24.0],
+  60:[12.4,12.5,14.0,14.1,24.2,24.3],
+  61:[12.7,12.8,14.3,14.4,24.3,24.4],
+  62:[12.8,12.9,14.4,14.5,24.4,24.5],
+  63:[13.0,13.1,14.5,14.6,24.7,24.8],
+  64:[13.1,13.2,14.7,14.8,24.9,25.0],
+  65:[13.2,13.3,14.8,14.9,25.2,25.3],
+  66:[13.3,13.4,14.9,15.0,25.5,25.6],
+  67:[13.4,13.5,15.1,15.2,25.7,25.8],
+  68:[13.6,13.7,15.2,15.3,26.0,26.1],
+  69:[13.7,13.8,15.3,15.4,26.3,26.4],
+  70:[13.8,13.9,15.5,15.6,26.6,26.7],
+  71:[13.9,14.0,15.6,15.7,26.8,26.9]
+};
+
+function getWFAClassification(weight, ageMonths, gender) {
+  if (weight == null || ageMonths == null || !gender) return "Unknown";
+  const table = gender.toLowerCase().startsWith("f") ? GIRLS_WFA : BOYS_WFA;
+  // Clamp age to 0-71, but our app is 0-59; still support
+  let age = Math.floor(parseInt(ageMonths));
+  if (isNaN(age)) return "Unknown";
+  if (age < 0) age = 0;
+  if (age > 71) age = 71;
+  // If age not in table (should be), use closest
+  let row = table[age];
+  if (!row) {
+    // fallback to nearest available
+    let keys = Object.keys(table).map(k=>parseInt(k)).sort((a,b)=>a-b);
+    let nearest = keys.reduce((prev,curr)=> Math.abs(curr-age) < Math.abs(prev-age) ? curr : prev, keys[0]);
+    row = table[nearest];
+  }
+  const [sevMax, uwFrom, uwTo, normFrom, normTo, overMin] = row;
+  // WHO logic: < -3SD = Severely Underweight, -3SD to < -2SD = Underweight, -2SD to +2SD = Normal, > +2SD = Overweight
+  // Use From values as cutoffs to handle 0.1 gaps
+  if (weight < uwFrom) return "Severely Underweight";
+  if (weight < normFrom) return "Underweight";
+  if (weight <= normTo) return "Normal";
+  return "Overweight";
 }
+
+// Keep old name for compatibility but now uses WFA
+function getClassification(weight, ageMonths, gender) {
+  // If called with only 1 arg (old BMI logic), fallback to weight-based generic
+  if (arguments.length === 1) {
+    // old BMI path no longer used; return Normal as fallback
+    return "Normal";
+  }
+  return getWFAClassification(weight, ageMonths, gender);
+}
+
+function getClassificationWithRange(weight, ageMonths, gender) {
+  const status = getWFAClassification(weight, ageMonths, gender);
+  const table = gender && gender.toLowerCase().startsWith("f") ? GIRLS_WFA : BOYS_WFA;
+  let age = Math.floor(parseInt(ageMonths));
+  if (isNaN(age)) age = 0;
+  if (age < 0) age = 0;
+  if (age > 71) age = 71;
+  const row = table[age] || table[0];
+  return { status, range: row };
+}
+
 
 function calculateBMI() {
   const w = parseFloat(document.getElementById("cWeight")?.value);
   const h = parseFloat(document.getElementById("cHeight")?.value);
-  if (!w || !h) {
-    alert("Please enter weight and height first!");
+  const age = parseInt(document.getElementById("cAge")?.value);
+  const gender = document.getElementById("cGender")?.value;
+  if (!w || isNaN(age) || !gender) {
+    alert("Please enter weight, age, and gender first!");
     return null;
   }
-  const hm = h / 100;
-  const bmi = w / (hm * hm);
-  const cls = getClassification(bmi);
+  const bmi = h ? w / ((h/100)*(h/100)) : 0;
+  const cls = getWFAClassification(w, age, gender);
   const box = document.getElementById("bmiResultBox");
   if (box) box.classList.add("show");
   const bv = document.getElementById("bmiValue");
-  if (bv) bv.textContent = bmi.toFixed(2);
+  if (bv) bv.textContent = h ? bmi.toFixed(2) : w.toFixed(1) + " kg";
   const el = document.getElementById("bmiClass");
   if (el) {
     el.textContent = cls;
-    el.className = "badge " + cls;
+    el.className = "badge " + cls.replace(/\s+/g,"-");
   }
-  return { bmi, cls };
+  // Show range info if available
+  const rangeInfo = document.getElementById("rangeInfo");
+  if (rangeInfo) {
+    const table = gender.toLowerCase().startsWith("f") ? GIRLS_WFA : BOYS_WFA;
+    const row = table[age] || table[0];
+    if (row) {
+      rangeInfo.innerHTML = `<small style="color:#666">Range for ${gender}, ${age}mo: SU < ${row[1]}kg | UW ${row[1]}-${row[2]}kg | Normal ${row[3]}-${row[4]}kg | OW > ${row[4]}kg</small>`;
+    }
+  }
+  return { bmi: h ? parseFloat(bmi.toFixed(2)) : w, cls };
+}
+
+function calculateUpdateBMI() {
+  const w = parseFloat(document.getElementById("uWeight")?.value);
+  const h = parseFloat(document.getElementById("uHeight")?.value);
+  const age = parseInt(document.getElementById("uAge")?.value);
+  const gender = document.getElementById("uGender")?.value;
+  if (!w || isNaN(age) || !gender) {
+    alert("Please enter weight, age, and gender first!");
+    return null;
+  }
+  const bmi = h ? w / ((h/100)*(h/100)) : 0;
+  const cls = getWFAClassification(w, age, gender);
+  const box = document.getElementById("uBmiResultBox");
+  if (box) box.classList.add("show");
+  const bv = document.getElementById("uBmiValue");
+  if (bv) bv.textContent = h ? bmi.toFixed(2) : w.toFixed(1) + " kg";
+  const el = document.getElementById("uBmiClass");
+  if (el) {
+    el.textContent = cls;
+    el.className = "badge " + cls.replace(/\s+/g,"-");
+  }
+  return { bmi: h ? parseFloat(bmi.toFixed(2)) : w, cls };
 }
 
 const childForm = document.getElementById("childForm");
@@ -662,23 +890,9 @@ if (childForm) {
         saveChildren(children);
         alert("✅ Added! Record for " + data.name);
         resetForm();
-        // Clear search filters so new record is visible
-        const s1 = document.getElementById("searchInput"); if(s1) s1.value = "";
-        const s2 = document.getElementById("purokSearch"); if(s2) s2.value = "";
-        const s3 = document.getElementById("feedingSearch"); if(s3) s3.value = "";
-        const f1 = document.getElementById("filterStatus"); if(f1) f1.value = "";
         await loadChildren();
         renderDashboard();
         renderTable();
-        renderPurok();
-        renderFeeding();
-        // Switch to All Records view to see new record
-        document.querySelectorAll(".side-btn").forEach(x=>x.classList.remove("active"));
-        document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-        const recBtn = document.querySelector('[data-view="records"]');
-        if(recBtn) recBtn.classList.add("active");
-        const recView = document.getElementById("view-records");
-        if(recView) recView.classList.add("active");
         return;
       }
     }
@@ -687,13 +901,8 @@ if (childForm) {
     saveChildren(children);
     alert("✅ Added! Record for " + data.name);
     resetForm();
-    const s1b = document.getElementById("searchInput"); if(s1b) s1b.value = "";
-    const s2b = document.getElementById("purokSearch"); if(s2b) s2b.value = "";
-    const f1b = document.getElementById("filterStatus"); if(f1b) f1b.value = "";
     renderDashboard();
     renderTable();
-    renderPurok();
-    renderFeeding();
   });
 }
 
@@ -710,20 +919,17 @@ function renderDashboard() {
   if (!el) return;
   const children = getChildren();
   document.getElementById("totalChildren").textContent = children.length;
-  document.getElementById("totalNormal").textContent = children.filter(
-    (c) => c.status === "Normal",
-  ).length;
-  document.getElementById("totalUnder").textContent = children.filter(
-    (c) => c.status === "Underweight",
-  ).length;
+  const normalEl = document.getElementById("totalNormal");
+  if (normalEl) normalEl.textContent = children.filter((c) => c.status === "Normal").length;
+  const underEl = document.getElementById("totalUnder");
+  if (underEl) underEl.textContent = children.filter((c) => c.status === "Underweight").length;
   const overEl = document.getElementById("totalOver");
-  if (overEl)
-    overEl.textContent = children.filter(
-      (c) => c.status === "Overweight",
-    ).length;
-  document.getElementById("totalObese").textContent = children.filter(
-    (c) => c.status === "Obese",
-  ).length;
+  if (overEl) overEl.textContent = children.filter((c) => c.status === "Overweight").length;
+  const obeseEl = document.getElementById("totalObese");
+  // totalObese element now repurposed as Severely Underweight
+  if (obeseEl) obeseEl.textContent = children.filter((c) => c.status === "Severely Underweight").length;
+  const sevEl = document.getElementById("totalSevUnder");
+  if (sevEl) sevEl.textContent = children.filter((c) => c.status === "Severely Underweight").length;
   drawChart(children);
 }
 
@@ -747,18 +953,18 @@ function drawChart(children) {
     ctx.clearRect(0, 0, width, height);
 
     const counts = {
+      "Severely Underweight": children.filter((c) => c.status === "Severely Underweight").length,
       Underweight: children.filter((c) => c.status === "Underweight").length,
       Normal: children.filter((c) => c.status === "Normal").length,
       Overweight: children.filter((c) => c.status === "Overweight").length,
-      Obese: children.filter((c) => c.status === "Obese").length,
     };
     const total = children.length || 1;
     const maxVal = Math.max(...Object.values(counts), 1);
     const colors = {
+      "Severely Underweight": "#d32f2f",
       Underweight: "#ffb300",
       Normal: "#1a7a4c",
-      Overweight: "#ff9800",
-      Obese: "#e65100",
+      Overweight: "#fb8c00",
     };
     const labels = Object.keys(counts);
     const barCount = labels.length;
@@ -839,17 +1045,17 @@ function drawChart(children) {
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const counts = {
+    "Severely Underweight": children.filter((c) => c.status === "Severely Underweight").length,
     Underweight: children.filter((c) => c.status === "Underweight").length,
     Normal: children.filter((c) => c.status === "Normal").length,
     Overweight: children.filter((c) => c.status === "Overweight").length,
-    Obese: children.filter((c) => c.status === "Obese").length,
   };
   const total = children.length || 1;
   const colors = {
+    "Severely Underweight": "#d32f2f",
     Underweight: "#ffb300",
     Normal: "#1a7a4c",
     Overweight: "#fb8c00",
-    Obese: "#bf360c",
   };
   let x = 20;
   ctx.font = "12px Poppins";
@@ -871,22 +1077,16 @@ function renderTable() {
   const searchVal =
     document.getElementById("searchInput")?.value.toLowerCase() || "";
   const f = document.getElementById("filterStatus")?.value || "";
-  let allChildren = getChildren();
-  let children = allChildren.filter((c) => {
-    // SEARCH: name, purok, address, status, gender, age
-    if (!searchVal) return true;
-    const sv = searchVal.toLowerCase().trim();
-    return (
-      (c.name && c.name.toLowerCase().includes(sv)) ||
-      (c.purok && c.purok.toLowerCase().includes(sv)) ||
-      (c.address && c.address.toLowerCase().includes(sv)) ||
-      (c.status && c.status.toLowerCase().includes(sv)) ||
-      (c.gender && c.gender.toLowerCase().includes(sv)) ||
-      String(c.age).includes(sv)
-    );
-  }).filter((c) => {
+  let children = getChildren().filter((c) => {
+    // SEARCH: name, purok, address, status
+    const matchQ =
+      !searchVal ||
+      c.name.toLowerCase().includes(searchVal) ||
+      c.purok.toLowerCase().includes(searchVal) ||
+      c.address.toLowerCase().includes(searchVal) ||
+      c.status.toLowerCase().includes(searchVal);
     const matchF = !f || c.status === f;
-    return matchF;
+    return matchQ && matchF;
   });
   // sort newest first
   children = children.reverse();
@@ -1753,8 +1953,13 @@ async function confirmDeleteAccount() {
       isSupabaseConfigured()
     ) {
       const supabase = getSupabase();
-      // KEEP CHILD RECORDS - DO NOT DELETE CHILDREN
-      console.log(`Keeping child records for ${username} - account only will be deleted`);
+      // Delete children records first
+      const { error: childErr } = await supabase
+        .from("children")
+        .delete()
+        .eq("created_by", username);
+      if (childErr) console.warn("Failed to delete children:", childErr);
+      else console.log(`Deleted children records for ${username}`);
       // Delete user
       const { error: userErr } = await supabase
         .from("users")
@@ -1775,8 +1980,10 @@ async function confirmDeleteAccount() {
       let users = JSON.parse(localStorage.getItem("nt_users") || "[]");
       users = users.filter((u) => u.username !== username);
       localStorage.setItem("nt_users", JSON.stringify(users));
-      // KEEP CHILDREN - DO NOT DELETE LOCAL CHILDREN RECORDS
+      // Delete per-user children
+      localStorage.removeItem(`nt_children_${username}`);
       localStorage.removeItem("nt_current");
+      localStorage.removeItem("nt_children");
       // Clean migrated flags
       Object.keys(localStorage).forEach((k) => {
         if (k.includes(username) || k.includes("migrated_" + username)) {
@@ -1788,7 +1995,7 @@ async function confirmDeleteAccount() {
     }
 
     alert(
-      `✅ Account "${username}" has been deleted!\n\nAll child records were KEPT in the system.\n\nRedirecting to login...`,
+      `✅ Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
@@ -1840,7 +2047,7 @@ async function confirmDeleteAccount() {
   }
   if (
     !confirm(
-      `FINAL CONFIRMATION:\n\nDelete account "${username}"?\n\nNote: All child records will be KEPT in the system.\n\n`,
+      `FINAL CONFIRMATION:\n\nDelete account "${username}" and ${getChildren().length} child records?\n\nThis CANNOT be undone!\n\nClick OK to PERMANENTLY DELETE.`,
     )
   ) {
     return;
@@ -1856,8 +2063,13 @@ async function confirmDeleteAccount() {
       isSupabaseConfigured()
     ) {
       const supabase = getSupabase();
-      // KEEP CHILD RECORDS - DO NOT DELETE CHILDREN
-      console.log(`Keeping child records for ${username} - account only will be deleted`);
+      // Delete children records first
+      const { error: childErr } = await supabase
+        .from("children")
+        .delete()
+        .eq("created_by", username);
+      if (childErr) console.warn("Failed to delete children:", childErr);
+      else console.log(`Deleted children records for ${username}`);
       // Delete user
       const { error: userErr } = await supabase
         .from("users")
@@ -1878,8 +2090,10 @@ async function confirmDeleteAccount() {
       let users = JSON.parse(localStorage.getItem("nt_users") || "[]");
       users = users.filter((u) => u.username !== username);
       localStorage.setItem("nt_users", JSON.stringify(users));
-      // KEEP CHILDREN - DO NOT DELETE LOCAL CHILDREN RECORDS
+      // Delete per-user children
+      localStorage.removeItem(`nt_children_${username}`);
       localStorage.removeItem("nt_current");
+      localStorage.removeItem("nt_children");
       // Clean migrated flags
       Object.keys(localStorage).forEach((k) => {
         if (k.includes(username) || k.includes("migrated_" + username)) {
@@ -1891,7 +2105,7 @@ async function confirmDeleteAccount() {
     }
 
     alert(
-      `✅ Account "${username}" has been deleted!\n\nAll child records were KEPT in the system.\n\nRedirecting to login...`,
+      `✅ Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
