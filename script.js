@@ -30,7 +30,7 @@ function togglePass(id, btn) {
     );
     if (users.length !== before || localStorage.getItem("nt_users") === null) {
       localStorage.setItem("nt_users", JSON.stringify(users));
-      console.log("Deleted admin from nt_users");
+      console.log("🗑️ Deleted admin from nt_users");
     }
     // 2. Delete nt_current if admin
     const curStr = localStorage.getItem("nt_current");
@@ -49,7 +49,7 @@ function togglePass(id, btn) {
             localStorage.removeItem(k);
           }
         });
-        console.log("Deleted admin session and admin children data");
+        console.log("🗑️ Deleted admin session and admin children data");
         if (window.location.pathname.includes("dashboard.html")) {
           alert(
             "Default admin account has been DELETED! Redirecting to login. Use ml1 or lln1 accounts.",
@@ -293,7 +293,7 @@ async function fetchChildrenFromSupabase() {
       .order("created_at", { ascending: false });
     if (error) throw error;
     console.log(
-      ` Loading SHARED records - found ${data.length} total (all accounts)`,
+      `📂 Loading SHARED records - found ${data.length} total (all accounts)`,
     );
     return data.map((row) => ({
       id: row.id,
@@ -427,7 +427,7 @@ async function migrateLocalToSupabase(localData) {
       .insert(toInsert)
       .select();
     if (error) throw error;
-    console.log(" Migrated", data.length, "records to Supabase!");
+    console.log("✅ Migrated", data.length, "records to Supabase!");
     localStorage.setItem(migratedKey + "_done", "true");
     // After migration, reload
     const fresh = await fetchChildrenFromSupabase();
@@ -888,7 +888,7 @@ if (childForm) {
         let children = getChildrenSync();
         children.push(data);
         saveChildren(children);
-        alert(" Added! Record for " + data.name);
+        alert("✅ Added! Record for " + data.name);
         resetForm();
         await loadChildren();
         renderDashboard();
@@ -899,7 +899,7 @@ if (childForm) {
     let children = getChildrenSync();
     children.push(data);
     saveChildren(children);
-    alert(" Added! Record for " + data.name);
+    alert("✅ Added! Record for " + data.name);
     resetForm();
     renderDashboard();
     renderTable();
@@ -1094,7 +1094,7 @@ function renderTable() {
     children
       .map(
         (c) =>
-          `<tr>\n    <td><b>${c.name}</b><br><small style="color:#888;font-size:10px">Added by: ${c.created_by || "-"}</small></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.gender === "Male" ? "Male" : c.gender === "Female" ? "Female" : c.gender || "-"}</span></td><td>${c.age}</td><td>${c.purok}</td><td style="max-width:200px;min-width:140px;white-space:normal;word-break:break-word;line-height:1.4;font-size:12px;cursor:pointer" title="${c.address} - Click to see full address" onclick="showFullAddressById('${c.id}')" class="address-cell">${c.address || "-"}</td><td>${c.weight}kg</td><td>${c.height}cm</td>\n    <td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.date}</td><td><span style="background:#f3f4f6;padding:4px 8px;border-radius:10px;font-size:11px;font-weight:600" title="Last updated: ${c.updated_at || c.date}">${c.updated_by && c.updated_by !== c.created_by ? "" + c.updated_by : c.created_by || "-"}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')">Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')">Delete</button></div></td>\n  </tr>`,
+          `<tr>\n    <td><b>${c.name}</b><br><small style="color:#888;font-size:10px">Added by: ${c.created_by || "-"}</small></td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600">${c.gender === "Male" ? " Male" : c.gender === "Female" ? " Female" : c.gender || "-"}</span></td><td>${c.age}</td><td>${c.purok}</td><td style="max-width:200px;min-width:140px;white-space:normal;word-break:break-word;line-height:1.4;font-size:12px;cursor:pointer" title="${c.address} - Click to see full address" onclick="showFullAddressById('${c.id}')" class="address-cell">${c.address || "-"}</td><td>${c.weight}kg</td><td>${c.height}cm</td>\n    <td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td><td>${c.date}</td><td><span style="background:#f3f4f6;padding:4px 8px;border-radius:10px;font-size:11px;font-weight:600" title="Last updated: ${c.updated_at || c.date}">${c.updated_by && c.updated_by !== c.created_by ? "✏️ " + c.updated_by : c.created_by || "-"}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')"><i class="fa-solid fa-pen"></i> Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')"><i class="fa-solid fa-trash"></i> Delete</button></div></td>\n  </tr>`,
       )
       .join("") ||
     `<tr><td colspan=12 style="text-align:center;padding:20px">No records found for "${searchVal}" - try another name</td></tr>`;
@@ -1211,7 +1211,7 @@ async function saveUpdateChild() {
         renderTable();
         renderPurok();
         renderFeeding();
-        alert(" Updated! Record for " + data.name);
+        alert("✅ Updated! Record for " + data.name);
         closeUpdateChildModal();
         // Stay in All Records!
         return;
@@ -1224,13 +1224,13 @@ async function saveUpdateChild() {
     renderTable();
     renderPurok();
     renderFeeding();
-    alert(" Updated! Record for " + data.name);
+    alert("✅ Updated! Record for " + data.name);
     closeUpdateChildModal();
   } catch (err) {
     alert("Update failed: " + (err.message || err));
   } finally {
     if (btn) {
-      btn.textContent = oldText || "Update Record";
+      btn.textContent = oldText || "💾 Update Record";
       btn.disabled = false;
     }
   }
@@ -1317,14 +1317,14 @@ function renderPurok() {
     <div class="card"><h3>${children.length}</h3><p>Total in ${activePurok}</p></div>
     <div class="card normal"><h3>${children.filter((c) => c.status === "Normal").length}</h3><p>Normal</p></div>
     <div class="card under"><h3>${children.filter((c) => c.status === "Underweight").length}</h3><p>Underweight</p></div>
+    <div class="card severely"><h3>${children.filter((c) => c.status === "Severely Underweight").length}</h3><p>Severely Underweight</p></div>
     <div class="card over"><h3>${children.filter((c) => c.status === "Overweight").length}</h3><p>Overweight</p></div>
-    <div class="card obese"><h3>${children.filter((c) => c.status === "Obese").length}</h3><p>Obese</p></div>
   `;
   document.querySelector("#purokTable tbody").innerHTML =
     children
       .map(
         (c) =>
-          `<tr>\n    <td>${c.name}</td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender === "Male" ? "" : c.gender === "Female" ? "" : ""} ${c.gender || "-"}</span></td><td>${c.age}m</td><td>${c.address}</td><td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')">Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')">Delete</button></div></td>\n  </tr>`,
+          `<tr>\n    <td>${c.name}</td><td><span style="background:${c.gender === "Male" ? "#e3f2fd" : "#fce4ec"};color:${c.gender === "Male" ? "#1565c0" : "#c2185b"};padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">${c.gender || "-"}</span></td><td>${c.age}m</td><td>${c.address}</td><td>${c.bmi}</td><td><span class="badge ${c.status}">${c.status}</span></td>\n    <td><div class="action-group"><button class="btn-update" onclick="editChild('${c.id}')"><i class="fa-solid fa-pen"></i> Update</button><button class="btn-delete" onclick="deleteChild('${c.id}')"><i class="fa-solid fa-trash"></i> Delete</button></div></td>\n  </tr>`,
       )
       .join("") || "<tr><td colspan=7>No children in this purok</td></tr>";
 }
@@ -1334,7 +1334,7 @@ function renderFeeding() {
   if (!tbody) return;
   const searchF =
     document.getElementById("feedingSearch")?.value.toLowerCase() || "";
-  let allNeeding = getChildren().filter((c) => c.status === "Underweight" || c.status === "Severely Underweight");
+  let allNeeding = getChildren().filter((c) => c.status === "Underweight");
   let children = [...allNeeding];
   if (searchF)
     children = children.filter(
@@ -1375,18 +1375,38 @@ function renderFeeding() {
       rankingList.innerHTML =
         '<p style="text-align:center;padding:16px;opacity:.6;font-size:13px">No underweight children - great job! No priority needed.</p>';
     } else {
-            rankingList.innerHTML = ranked
+      rankingList.innerHTML = ranked
         .map(([purok, data], idx) => {
           const isTop = idx === 0;
-          const label = idx === 0 ? "PRIORITY" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : `${idx+1}th`;
-          const percent = allNeeding.length > 0 ? (data.total / allNeeding.length) * 100 : 0;
-          return `<div class="ranking-item ${isTop ? "top" : ""}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin:8px 0;background:${isTop ? "#ffebee" : "#f8faf8"};border:1.5px solid ${isTop ? "#ef9a9a" : "#e8ece9"};border-radius:12px">
-            <div style="font-weight:700;min-width:70px">${label}</div>
-            <div style="flex:1"><b>${purok} ${isTop ? "- PRIORITY" : ""}</b><br><small style="opacity:.7">Underweight: ${data.under} | Total needing: ${data.total}</small>
-              <div style="height:6px;background:#e0e0e0;border-radius:6px;margin-top:6px"><div style="height:6px;width:${percent}%;background:${isTop ? "#e53935" : "#1a7a4c"};border-radius:6px"></div></div>
+          const medal =
+            idx === 0
+              ? "🚨"
+              : idx === 1
+                ? "🥈"
+                : idx === 2
+                  ? "🥉"
+                  : ` ${idx + 1}.`;
+          const severityLabel = "Needs Feeding";
+          const barWidth =
+            ranked[0][1].total > 0
+              ? (data.total / ranked[0][1].total) * 100
+              : 0;
+          return `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:${isTop ? "linear-gradient(135deg,#ffebee,#ffcdd2)" : "#f8faf8"};border:1.5px solid ${isTop ? "#ef9a9a" : "#eef1ef"};${isTop ? "box-shadow:0 2px 10px rgba(229,57,53,.15)" : ""}">
+          <div style="font-size:18px;min-width:32px;text-align:center">${medal}</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <b style="font-size:14px;color:${isTop ? "#c62828" : "#222"}">${purok} ${isTop ? " - PRIORITY" : ""}</b><small style="margin-left:8px;background:#ffb300;color:#fff;padding:2px 6px;border-radius:8px;font-size:9px">${severityLabel}</small>
+              <span style="font-size:13px;font-weight:700;background:${isTop ? "#c62828" : "#666"};color:#fff;padding:3px 10px;border-radius:12px">${data.total} ${data.total === 1 ? "child" : "children"}</span>
             </div>
-            <div style="background:${isTop ? "#e53935" : "#666"};color:#fff;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600">${data.total} children</div>
-          </div>`;
+            <div style="display:flex;gap:8px;font-size:11px;opacity:.7;margin-bottom:6px">
+              <span>Underweight: ${data.under}</span>
+            </div>
+            <div style="height:6px;background:#e0e0e0;border-radius:10px;overflow:hidden">
+              <div style="height:100%;width:${barWidth}%;background:${isTop ? "linear-gradient(90deg,#e53935,#ff7043)" : "linear-gradient(90deg,#999,#bbb)"};border-radius:10px;transition:width .5s"></div>
+            </div>
+          </div>
+        </div>`;
         })
         .join("");
     }
@@ -1575,7 +1595,7 @@ function printPurokReport() {
       <p style="margin-top:8px;text-align:justify"><b>Total Number of Children in ${activePurok}: ${total}</b></p>
       <p style="text-align:justify"><b>Purok:</b> ${activePurok} | <b>Office:</b> Ramcar Phase 2 | <b>Coverage:</b> 0-59 Months</p>
     </div>
-    <div class="no-print" style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 24px;background:#1a7a4c;color:#fff;border:none;border-radius:6px;cursor:pointer"> Print</button></div>
+    <div class="no-print" style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 24px;background:#1a7a4c;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Print</button></div>
     </body></html>`);
   win.document.close();
   setTimeout(() => win.print(), 300);
@@ -1812,7 +1832,7 @@ async function saveAccountChanges() {
       document.getElementById("userDisplay").textContent =
         updatedUser.name || updatedUser.username;
       alert(
-        ` Account updated!\nUsername: ${oldUsername} → ${newUsername}\nYour ${getChildren().length} child records are still there!\nPlease login with new credentials next time.`,
+        `✅ Account updated!\nUsername: ${oldUsername} → ${newUsername}\nYour ${getChildren().length} child records are still there!\nPlease login with new credentials next time.`,
       );
       closeAccountModal();
       // Reload children to reflect new username
@@ -1851,7 +1871,7 @@ async function saveAccountChanges() {
         localStorage.setItem(newKey, JSON.stringify(children));
       }
       document.getElementById("userDisplay").textContent = newUsername;
-      alert(" Account updated offline! Records kept.");
+      alert("✅ Account updated offline! Records kept.");
       closeAccountModal();
       location.reload();
     }
@@ -1975,7 +1995,7 @@ async function confirmDeleteAccount() {
     }
 
     alert(
-      ` Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
+      `✅ Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
@@ -2085,7 +2105,7 @@ async function confirmDeleteAccount() {
     }
 
     alert(
-      ` Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
+      `✅ Account "${username}" and all ${getChildren().length} records have been permanently deleted!\n\nRedirecting to login...`,
     );
     closeDeleteAccountModal();
     closeAccountModal();
@@ -2128,12 +2148,12 @@ async function initDBStatus() {
   );
   if (isConfigured) {
     console.log(
-      " Supabase PostgreSQL Connected (badge hidden, connection active) - URL:",
+      "✅ Supabase PostgreSQL Connected (badge hidden, connection active) - URL:",
       typeof SUPABASE_URL !== "undefined" ? SUPABASE_URL : "unknown",
     );
     // Keep badge text for debugging but hidden
     if (statusEl) {
-      statusEl.textContent = " Supabase PostgreSQL Connected";
+      statusEl.textContent = "🟢 Supabase PostgreSQL Connected";
       statusEl.className = "db-status db-connected d-none";
       statusEl.style.display = "none";
     }
@@ -2147,9 +2167,9 @@ async function initDBStatus() {
     if (typeof renderPurok === "function") renderPurok();
     if (typeof renderFeeding === "function") renderFeeding();
   } else {
-    console.log(" Offline Mode - Supabase not configured (badge hidden)");
+    console.log("🟡 Offline Mode - Supabase not configured (badge hidden)");
     if (statusEl) {
-      statusEl.textContent = " Offline Mode (localStorage)";
+      statusEl.textContent = "🟡 Offline Mode (localStorage)";
       statusEl.className = "db-status db-offline d-none";
       statusEl.style.display = "none";
     }
@@ -2173,7 +2193,7 @@ function showFullAddress(name, address) {
   modal.className = "modal-overlay show";
   modal.style.zIndex = "9999";
   modal.innerHTML =
-    '<div class="modal" style="max-width:480px"><div style="text-align:center;margin-bottom:12px"><div style="font-size:32px"></div><h3 style="margin:8px 0 4px 0">' +
+    '<div class="modal" style="max-width:480px"><div style="text-align:center;margin-bottom:12px"><div style="font-size:32px">📍</div><h3 style="margin:8px 0 4px 0">' +
     name +
     '</h3><p style="font-size:12px;color:#666;margin:0">Complete Address</p></div><div style="background:#f8faf8;border:1.5px solid #e0e4e1;border-radius:12px;padding:16px;margin:16px 0;text-align:left;line-height:1.5;font-size:14px;word-break:break-word">' +
     address +
