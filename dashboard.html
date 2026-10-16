@@ -70,13 +70,13 @@
               <h3 id="totalUnder">0</h3>
               <p>Underweight</p>
             </div>
+            <div class="card severely">
+              <h3 id="totalObese">0</h3>
+              <p>Severely Underweight</p>
+            </div>
             <div class="card over">
               <h3 id="totalOver">0</h3>
               <p>Overweight</p>
-            </div>
-            <div class="card obese">
-              <h3 id="totalObese">0</h3>
-              <p>Obese</p>
             </div>
           </div>
           <div class="chart-box">
@@ -167,7 +167,7 @@
             </div>
             <div class="full bmi-result" id="bmiResultBox">
               <div><span>BMI:</span><b id="bmiValue">--</b></div>
-              <div><span>Classification:</span><b id="bmiClass">--</b></div>
+              <div><span>Classification (Weight-for-Age):</span><b id="bmiClass">--</b><div id="rangeInfo" style="margin-top:6px"></div></div>
             </div>
             <div class="full actions form-actions-grid">
               <button
@@ -205,8 +205,8 @@
                 <option value="">All Status</option>
                 <option>Normal</option>
                 <option>Underweight</option>
+                <option>Severely Underweight</option>
                 <option>Overweight</option>
-                <option>Obese</option>
               </select>
             </div>
           </div>
@@ -557,7 +557,7 @@
           <div class="bmi-result" id="uBmiResultBox">
             <div><span>BMI:</span><b id="uBmiValue">--</b></div>
             <div>
-              <span>CLASSIFICATION:</span><b id="uBmiClass" class="badge">--</b>
+              <span>CLASSIFICATION (WFA):</span><b id="uBmiClass" class="badge">--</b>
             </div>
           </div>
           <div class="update-actions">
