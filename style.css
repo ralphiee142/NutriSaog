@@ -1701,16 +1701,49 @@ canvas {
   background: linear-gradient(135deg, #ffcdd2 0%, #ef9a9a 100%);
   border-left: 5px solid #c62828;
 }
-.card.severely h3 { color: #b71c1c; }
-.card.severely p { color: #c62828; }
+.card.severely h3 {
+  color: #b71c1c;
+}
+.card.severely p {
+  color: #c62828;
+}
 
-.badge.Severely-Underweight, .badge.Severely\ Underweight {
+.badge.Severely-Underweight,
+.badge.Severely\ Underweight {
   background: #c62828;
   color: #fff;
 }
-.badge.Underweight { background: #ffb300; color:#000; }
-.badge.Normal { background:#1a7a4c; color:#fff; }
-.badge.Overweight { background:#fb8c00; color:#fff; }
-.badge.Obese { background:#bf360c; color:#fff; } /* legacy */
+.badge.Underweight {
+  background: #ffb300;
+  color: #000;
+}
+.badge.Normal {
+  background: #1a7a4c;
+  color: #fff;
+}
+.badge.Overweight {
+  background: #fb8c00;
+  color: #fff;
+}
+.badge.Obese {
+  background: #bf360c;
+  color: #fff;
+} /* legacy */
 
-#rangeInfo { width:100%; margin-top:8px; }
+#rangeInfo {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* E-OPT PLUS 15 columns styling - keeps icons */
+.eopt-header{background:#fff;border:1.5px solid #c8d8e4;border-radius:12px;padding:16px;margin-bottom:12px}
+.eopt-header h2{font-size:18px;margin:0;color:#0f5d36}
+.eopt-sub{font-size:13px;font-weight:700;margin:4px 0;color:#222}
+.eopt-meta{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:12px}
+.eopt-meta span{background:#f0f6f2;padding:4px 8px;border-radius:6px}
+.eopt-grid{grid-template-columns:1fr 1fr !important}
+.eopt-grid .full{grid-column:1 / -1}
+#recordsTable th{font-size:10px;line-height:1.2;padding:8px 6px;text-align:center;background:#6da8d1;color:#fff;position:sticky;top:0}
+#recordsTable td{font-size:12px;padding:6px;border-bottom:1px solid #eee}
+#recordsTable tbody tr:nth-child(even){background:#f9fcf9}
+.badge{display:inline-block;min-width:28px;text-align:center}
