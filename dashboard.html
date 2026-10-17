@@ -89,151 +89,161 @@
             </div>
           </div>
         </section>
+        
         <section id="view-add" class="view">
-          <h2>Add Child Information</h2>
-          <form id="childForm" class="form-grid">
+          <div class="eopt-header">
+            <h2>Community Level e-OPT PLUS Tool</h2>
+            <p class="eopt-sub">WEIGHT FOR AGE, HEIGHT FOR AGE, & WEIGHT FOR LENGTH/HEIGHT STATUS</p>
+            <div class="eopt-meta">
+              <span><b>Barangay:</b> SAOG</span>
+              <span><b>Municipality:</b> MARILAO</span>
+              <span><b>Province:</b> Bulacan</span>
+              <span><b>Region:</b> III Central Luzon</span>
+              <span><b>Date:</b> 05/05/2026</span>
+              <span><b>Year:</b> 2026</span>
+            </div>
+          </div>
+          <h3 style="margin-top:18px">Add Child Information - 15 Columns Format</h3>
+          <form id="childForm" class="form-grid eopt-grid">
             <input type="hidden" id="editId" />
             <div>
-              <label>Child's Full Name *</label
-              ><input
-                type="text"
-                id="cName"
-                required
-                placeholder="Enter child's full name"
-              />
+              <label>1. No. (Auto)</label><input type="text" id="cNo" readonly placeholder="Auto"/>
             </div>
             <div>
-              <label>Gender *</label>
-              <select id="cGender" required>
-                <option value="">Select Gender</option>
-                <option value="Male">Male - Lalaki</option>
-                <option value="Female">Female - Babae</option>
-              </select>
-            </div>
-            <div>
-              <label>Age (months) 0-59 *</label
-              ><input
-                type="number"
-                id="cAge"
-                min="0"
-                max="59"
-                required
-                placeholder="Enter age"
-              />
-            </div>
-            <div>
-              <label>Purok *</label>
+              <label>2. Purok *</label>
               <select id="cPurok" required>
                 <option value="">Select Purok</option>
-                <option>Purok 1</option>
-                <option>Purok 2</option>
-                <option>Purok 3</option>
-                <option>Purok 4</option>
-                <option>Purok 5</option>
-                <option>Purok 6</option>
+                <option>PUROK 1- PUNONG TULAY</option>
+                <option>PUROK 2- GITNA</option>
+                <option>PUROK 3- BAHAY PARE</option>
+                <option>PUROK 4- LOMA</option>
+                <option>PUROK 5- IBABA</option>
+                <option>PUROK 6- ITAAS</option>
+              </select>
+            </div>
+            <div class="full">
+              <label>3. Address or Location of Child's Residence (Purok, Block #, Area) *</label>
+              <input type="text" id="cAddress" required placeholder="e.g. PUROK 1- PUNONG TULAY, Block 2, Saog"/>
+            </div>
+            <div>
+              <label>4. Name of Mother or Caregiver *</label>
+              <input type="text" id="cMother" required placeholder="Surname, First Name - e.g. WATIWAT, MELANIE"/>
+            </div>
+            <div>
+              <label>5. Full Name of Child *</label>
+              <input type="text" id="cName" required placeholder="Surname, First Name - e.g. OCCIANO, EDLAN W."/>
+            </div>
+            <div>
+              <label>6. Belongs to IP Group? *</label>
+              <select id="cIP" required>
+                <option value="">Select</option>
+                <option value="NO">NO</option>
+                <option value="YES">YES</option>
               </select>
             </div>
             <div>
-              <label>Complete Address *</label
-              ><input
-                type="text"
-                id="cAddress"
-                required
-                placeholder="Enter complete address"
-              />
+              <label>7. Sex *</label>
+              <select id="cGender" required>
+                <option value="">Select</option>
+                <option value="M">M</option>
+                <option value="F">F</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
             </div>
             <div>
-              <label>Weight (kg) *</label
-              ><input
-                type="number"
-                id="cWeight"
-                step="0.1"
-                required
-                placeholder="Enter weight"
-              />
+              <label>8. Date of Birth *</label>
+              <input type="date" id="cDOB" required onchange="autoComputeEOPT()"/>
             </div>
             <div>
-              <label>Height (cm) *</label
-              ><input
-                type="number"
-                id="cHeight"
-                step="0.1"
-                required
-                placeholder="Enter height"
-              />
+              <label>9. Date Measured *</label>
+              <input type="date" id="cDate" required onchange="autoComputeEOPT()"/>
             </div>
             <div>
-              <label>Date of Monitoring</label><input type="date" id="cDate" />
+              <label>10. Weight (kg) *</label>
+              <input type="number" id="cWeight" step="0.1" required placeholder="12.2" oninput="autoComputeEOPT()"/>
+            </div>
+            <div>
+              <label>11. Height (cm) *</label>
+              <input type="number" id="cHeight" step="0.1" required placeholder="90.1" oninput="autoComputeEOPT()"/>
+            </div>
+            <div>
+              <label>12. Age in Months (Auto)</label>
+              <input type="number" id="cAge" readonly placeholder="Auto computed"/>
+            </div>
+            <div>
+              <label>13. Weight for Age Status (Auto)</label>
+              <input type="text" id="cWFA" readonly placeholder="N / UW / SUW / OW"/>
+            </div>
+            <div>
+              <label>14. Height for Age Status (Auto)</label>
+              <input type="text" id="cHFA" readonly placeholder="N / S / SS / T"/>
+            </div>
+            <div>
+              <label>15. Weight for Lt/Ht Status (Auto)</label>
+              <input type="text" id="cWFH" readonly placeholder="N / W / SW / OW / O"/>
             </div>
             <div class="full bmi-result" id="bmiResultBox">
-              <div><span>BMI:</span><b id="bmiValue">--</b></div>
-              <div>
-                <span>Classification (Weight-for-Age):</span
-                ><b id="bmiClass">--</b>
-                <div id="rangeInfo" style="margin-top: 6px"></div>
-              </div>
+              <div><span>Computation:</span><b id="bmiValue">--</b></div>
+              <div><span>Classifications:</span><b id="bmiClass">--</b><div id="rangeInfo" style="margin-top:6px;font-size:11px"></div></div>
             </div>
             <div class="full actions form-actions-grid">
-              <button
-                type="button"
-                class="btn-secondary"
-                onclick="calculateBMI()"
-              >
-                Calculate BMI
-              </button>
-              <button type="submit" class="btn-primary" id="saveBtn">
-                Save Record
-              </button>
-              <button type="button" class="btn-outline" onclick="resetForm()">
-                Clear
-              </button>
+              <button type="button" class="btn-secondary" onclick="autoComputeEOPT()">🔄 Compute</button>
+              <button type="submit" class="btn-primary" id="saveBtn">💾 Save Record</button>
+              <button type="button" class="btn-outline" onclick="resetForm()">Clear</button>
             </div>
           </form>
         </section>
+        
         <section id="view-records" class="view">
           <div class="view-head">
-            <h2>All Children Records</h2>
-            <div class="tools">
-              <button class="btn-outline" onclick="exportAllToExcel()">
-                📊 Export Excel
-              </button>
-              <button class="btn-outline" onclick="printAllRecords()">
-                🖨️ Print Report
-              </button>
-              <input
-                type="text"
-                id="searchInput"
-                placeholder="🔍 Search child name..."
-              />
+            <div>
+              <h2>All Records - e-OPT PLUS Tool (15 Columns)</h2>
+              <small>Barangay: SAOG | Municipality: MARILAO | Province: Bulacan | Region: III Central Luzon | Date: 05/05/2026</small>
+            </div>
+            <div class="tools" style="margin-top:10px">
+              <button class="btn-outline" onclick="exportAllToExcel()">📊 Export Excel</button>
+              <button class="btn-outline" onclick="printAllRecords()">🖨️ Print</button>
+              <input type="text" id="searchInput" placeholder="🔍 Search child/mother/purok..." style="min-width:220px"/>
               <select id="filterStatus">
                 <option value="">All Status</option>
-                <option>Normal</option>
-                <option>Underweight</option>
-                <option>Severely Underweight</option>
-                <option>Overweight</option>
+                <option value="N">Normal</option>
+                <option value="UW">Underweight</option>
+                <option value="SUW">Severely Underweight</option>
+                <option value="S">Stunted</option>
+                <option value="W">Wasted</option>
+                <option value="OW">Overweight</option>
               </select>
             </div>
           </div>
-          <div class="table-wrap">
-            <table id="recordsTable">
+          <div class="table-wrap" style="overflow:auto">
+            <table id="recordsTable" style="min-width:1800px">
               <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Gender</th>
-                  <th>Age(m)</th>
-                  <th>Purok</th>
-                  <th>Address</th>
-                  <th>Wt</th>
-                  <th>Ht</th>
-                  <th>BMI</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Updated By</th>
-                  <th>Action</th>
+                <tr style="background:#6da8d1;color:#fff">
+                  <th style="min-width:50px">1<br>No.</th>
+                  <th style="min-width:140px">2<br>Purok</th>
+                  <th style="min-width:180px">3<br>Address/Location</th>
+                  <th style="min-width:160px">4<br>Name of Mother/Caregiver</th>
+                  <th style="min-width:160px">5<br>Full Name of Child</th>
+                  <th style="min-width:70px">6<br>IP Group</th>
+                  <th style="min-width:50px">7<br>Sex</th>
+                  <th style="min-width:110px">8<br>Date of Birth</th>
+                  <th style="min-width:110px">9<br>Date Measured</th>
+                  <th style="min-width:70px">10<br>Weight (kg)</th>
+                  <th style="min-width:70px">11<br>Height (cm)</th>
+                  <th style="min-width:70px">12<br>Age in Months</th>
+                  <th style="min-width:90px">13<br>Weight for Age Status</th>
+                  <th style="min-width:90px">14<br>Height for Age Status</th>
+                  <th style="min-width:90px">15<br>Weight Lt/Ht Status</th>
+                  <th style="min-width:120px">Action</th>
                 </tr>
               </thead>
               <tbody></tbody>
             </table>
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:#666">
+            <b>Legend:</b> WFA: N=Normal, UW=Underweight, SUW=Severely Underweight, OW=Overweight | HFA: N=Normal, S=Stunted, SS=Severely Stunted, T=Tall | WFL/H: N=Normal, W=Wasted, SW=Severely Wasted, OW=Overweight, O=Obese<br>
+            <b>Source:</b> WHO Child Growth Standards 2006 adopted by NNC (www.nnc.gov.ph) | Weight for Age & Height for Age tables from e-OPT PLUS Tool | Weight-for-Length/Height from WHO https://www.who.int/tools/child-growth-standards/standards/weight-for-length-height
           </div>
         </section>
         <section id="view-purok" class="view">
