@@ -460,12 +460,9 @@ const WFH_GIRLS = {
 110:{m3:13.2, m2:14.2, m1:15.5, med:16.9, p1:18.5, p2:20.2, p3:21.9}
 };
 
-function getClosestHFA(age){
-  let keys = Object.keys(HFA_BOYS).map(Number).sort((a,b)=>a-b);
-  let closest = keys[0];
-  for(let k of keys){ if(Math.abs(k-age) < Math.abs(closest-age)) closest=k; }
-  return closest;
-}
+// ==================== CLASSIFICATION ====================
+function sexLetter(g) { return (g || "").toString().charAt(0).toUpperCase(); }
+function sexFull(g) { return sexLetter(g) === "F" ? "Female" : sexLetter(g) === "M" ? "Male" : ""; }
 
 function computeAgeInMonths(dobStr, measuredStr){
   if(!dobStr || !measuredStr) return null;
@@ -480,7 +477,7 @@ function computeAgeInMonths(dobStr, measuredStr){
 
 function classifyWFA(ageMonths, weight, sex){
   if(ageMonths==null || weight==null) return 'N';
-  let table = (sex && sex.toString().toUpperCase().startsWith('F')) ? WFA_GIRLS : WFA_BOYS;
+  let table = sexLetter(sex)==='F' ? WFA_GIRLS : WFA_BOYS;
   // find closest age if not exact
   let row = table[ageMonths];
   if(!row){
@@ -493,46 +490,47 @@ function classifyWFA(ageMonths, weight, sex){
   if(weight >= row.uw_from && weight <= row.uw_to) return 'UW';
   if(weight >= row.n_from && weight <= row.n_to) return 'N';
   if(weight >= row.ow) return 'OW';
-  // between gaps - interpolate as Normal if between uw_to and n_from etc
-  if(weight > row.uw_to && weight < row.n_from) return 'N';
-  if(weight > row.n_to && weight < row.ow) return 'N';
   return 'N';
 }
 
-function classifyHFA(ageMonths, height, sex){
-  if(ageMonths==null || height==null) return 'N';
-  let table = (sex && sex.toString().toUpperCase().startsWith('F')) ? HFA_GIRLS : HFA_BOYS;
-  let row = table[ageMonths];
-  if(!row){
-    let ageKey = getClosestHFA(ageMonths);
-    row = table[ageKey];
+// Interpolate between table rows (HFA only has some ages, WFH only every 5 cm)
+function interpRow(table, key) {
+  const keys = Object.keys(table).map(Number).sort((a, b) => a - b);
+  if (key <= keys[0]) return table[keys[0]];
+  if (key >= keys[keys.length - 1]) return table[keys[keys.length - 1]];
+  let lo = keys[0], hi = keys[keys.length - 1];
+  for (const k of keys) {
+    if (k <= key) lo = k;
+    if (k >= key) { hi = k; break; }
   }
-  if(!row) return 'N';
-  if(height < row.ss) return 'SS';
-  if(height >= row.s_from && height <= row.s_to) return 'S';
-  if(height >= row.n_from && height <= row.n_to) return 'N';
-  if(height >= row.tall) return 'T';
-  return 'N';
+  if (lo === hi) return table[lo];
+  const t = (key - lo) / (hi - lo), a = table[lo], b = table[hi], r = {};
+  for (const f in a) r[f] = a[f] + (b[f] - a[f]) * t;
+  return r;
 }
 
-function classifyWFH(heightCm, weightKg, sex){
-  if(!heightCm || !weightKg) return 'N';
-  let table = (sex && sex.toString().toUpperCase().startsWith('F')) ? WFH_GIRLS : WFH_BOYS;
-  // find closest height
-  let keys = Object.keys(table).map(Number).sort((a,b)=>a-b);
-  let closest = keys[0];
-  for(let k of keys){ if(Math.abs(k-heightCm) <= Math.abs(closest-heightCm)) closest=k; }
-  let row = table[closest];
-  if(!row) return 'N';
-  if(weightKg < row.m3) return 'SW';
-  if(weightKg >= row.m3 && weightKg < row.m2) return 'W';
-  if(weightKg >= row.m2 && weightKg <= row.p2) return 'N';
-  if(weightKg > row.p2 && weightKg <= row.p3) return 'OW';
-  if(weightKg > row.p3) return 'O';
-  return 'N';
+function classifyHFA(ageMonths, height, sex) {
+  if (ageMonths == null || height == null || isNaN(height)) return "N";
+  const table = sexLetter(sex) === "F" ? HFA_GIRLS : HFA_BOYS;
+  const r = interpRow(table, ageMonths);
+  if (height < r.s_from) return "SS";
+  if (height < r.n_from) return "S";
+  if (height >= r.tall) return "T";
+  return "N";
 }
 
-// Global compute for form
+function classifyWFH(heightCm, weightKg, sex) {
+  if (!heightCm || !weightKg || isNaN(heightCm) || isNaN(weightKg)) return "N";
+  const table = sexLetter(sex) === "F" ? WFH_GIRLS : WFH_BOYS;
+  const r = interpRow(table, heightCm);
+  if (weightKg < r.m3) return "SW";
+  if (weightKg < r.m2) return "W";
+  if (weightKg <= r.p2) return "N";
+  if (weightKg <= r.p3) return "OW";
+  return "O";
+}
+
+// Global compute for add form
 function autoComputeEOPT(){
   const dob = document.getElementById('cDOB')?.value;
   const measured = document.getElementById('cDate')?.value;
@@ -551,39 +549,26 @@ function autoComputeEOPT(){
   if(bmiBox){
     document.getElementById('bmiValue').textContent = age!=null? age+' months' : '--';
     document.getElementById('bmiClass').textContent = `WFA:${wfa} | HFA:${hfa} | WFH:${wfh}`;
-    document.getElementById('rangeInfo').innerHTML = `<small>Based on WHO Child Growth Standards adopted by NNC (nnc.gov.ph).<br>WFA source: ${sex&&sex.startsWith('F')?'Girls':'Boys'} table, HFA: ${sex&&sex.startsWith('F')?'Girls':'Boys'} table, WFH: WHO weight-for-length/height https://www.who.int/tools/child-growth-standards/standards/weight-for-length-height</small>`;
+    const girl = sexLetter(sex)==='F' ? 'Girls' : 'Boys';
+    document.getElementById('rangeInfo').innerHTML = `<small>Based on WHO Child Growth Standards adopted by NNC (nnc.gov.ph).<br>WFA source: ${girl} table, HFA: ${girl} table, WFH: WHO weight-for-length/height https://www.who.int/tools/child-growth-standards/standards/weight-for-length-height</small>`;
     bmiBox.style.display='block';
   }
 }
 window.autoComputeEOPT = autoComputeEOPT;
 
-// Override calculateBMI to call autoCompute
-function calculateBMI(){ autoComputeEOPT(); }
-function calculateUpdateBMI(){
-  const dob = document.getElementById('uDOB')?.value;
-  const measured = document.getElementById('uDate')?.value;
-  const w = parseFloat(document.getElementById('uWeight')?.value);
-  const h = parseFloat(document.getElementById('uHeight')?.value);
-  const sex = document.getElementById('uGender')?.value;
-  let age = computeAgeInMonths(dob, measured);
-  if(document.getElementById('uAge')) document.getElementById('uAge').value = age!=null? age : '';
-  let wfa = age!=null && !isNaN(w) ? classifyWFA(age,w,sex) : '';
-  let hfa = age!=null && !isNaN(h) ? classifyHFA(age,h,sex) : '';
-  let wfh = !isNaN(w) && !isNaN(h) ? classifyWFH(h,w,sex) : '';
-  if(document.getElementById('uWFA')) document.getElementById('uWFA').value = wfa;
-  if(document.getElementById('uHFA')) document.getElementById('uHFA').value = hfa;
-  if(document.getElementById('uWFH')) document.getElementById('uWFH').value = wfh;
-  const box = document.getElementById('uBmiResultBox');
-  if(box){ 
-    document.getElementById('uBmiValue').textContent = age!=null? age+' months' : '--';
-    document.getElementById('uBmiClass').textContent = `WFA:${wfa} | HFA:${hfa} | WFH:${wfh}`;
-    box.classList.add('show');
-  }
-}
-window.calculateUpdateBMI = calculateUpdateBMI;
-
-// ===== DATA LAYER PATCHED FOR 15 COLUMNS =====
+// ==================== DATA LAYER ====================
+const PUROK_LIST = ["Purok 1", "Purok 2", "Purok 3", "Purok 4", "Purok 5", "Purok 6"];
+let activePurok = "Purok 1";
+let pendingDeleteId = null;
+let statusChartInst = null;
 let childrenCache = null;
+
+function byId(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (m) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+
 function getCurrentUserGlobal(){ try{ const s=localStorage.getItem('nt_current'); return s?JSON.parse(s):null;}catch{return null;} }
 function getCurrentUsernameGlobal(){ const u=getCurrentUserGlobal(); return u? u.username||u.name||'admin':'admin';}
 function getChildrenStorageKeyGlobal(){ return `nt_children_${getCurrentUsernameGlobal()}`; }
@@ -605,12 +590,6 @@ function getChildrenSync(){
   }catch{}
   return [];
 }
-function getChildren(){ if(childrenCache) return childrenCache; return getChildrenSync(); }
-async function loadChildren(){
-  const data = getChildrenSync();
-  childrenCache = data;
-  return data;
-}
 function saveChildren(list){
   childrenCache = list;
   try{
@@ -621,56 +600,134 @@ function saveChildren(list){
   }catch(e){ console.warn(e); }
 }
 
-// Form submit - new 15 columns
+// Normalize old records: "Purok 6" format + compute missing WFA/HFA/WFH
+function normalizeChild(c) {
+  const before = JSON.stringify(c);
+  if (!c.id) c.id = "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+  const m = String(c.purok || "").match(/\d+/);
+  if (m) c.purok = "Purok " + parseInt(m[0], 10);
+  if (!c.gender && c.sex) c.gender = c.sex;
+  if (c.weight !== undefined && c.weight !== "") c.weight = parseFloat(c.weight);
+  if (c.height !== undefined && c.height !== "") c.height = parseFloat(c.height);
+  if (c.age == null || c.age === "") c.age = computeAgeInMonths(c.dob, c.date);
+  else c.age = Number(c.age);
+  const a = c.age, w = c.weight, h = c.height, sex = c.gender;
+  if (!c.wfa) c.wfa = a != null && !isNaN(w) ? classifyWFA(a, w, sex) : "N";
+  if (!c.hfa) c.hfa = a != null && !isNaN(h) ? classifyHFA(a, h, sex) : "N";
+  if (!c.wfh) c.wfh = !isNaN(w) && !isNaN(h) ? classifyWFH(h, w, sex) : "N";
+  c.status = c.wfa;
+  return JSON.stringify(c) !== before;
+}
+
+function getChildren() {
+  if (!childrenCache) {
+    const list = getChildrenSync();
+    let changed = false;
+    list.forEach((c) => { if (normalizeChild(c)) changed = true; });
+    childrenCache = list;
+    if (changed) saveChildren(list);
+  }
+  return childrenCache;
+}
+async function loadChildren() { childrenCache = null; return getChildren(); }
+
+function getStats(list) {
+  return {
+    total: list.length,
+    normal: list.filter((c) => c.wfa === "N").length,
+    uw: list.filter((c) => c.wfa === "UW").length,
+    suw: list.filter((c) => c.wfa === "SUW").length,
+    ow: list.filter((c) => c.wfa === "OW").length,
+    stunted: list.filter((c) => c.hfa === "S" || c.hfa === "SS").length,
+    wasted: list.filter((c) => c.wfh === "W" || c.wfh === "SW").length,
+  };
+}
+function st(code) { return `<span class="st st-${esc(code || "N")}">${esc(code || "N")}</span>`; }
+
+function refreshAll() {
+  renderDashboard();
+  renderTable();
+  if (byId("view-purok")?.classList.contains("active")) renderPurok();
+  if (byId("view-feeding")?.classList.contains("active")) renderFeeding();
+}
+
+// ==================== DASHBOARD ====================
+function renderDashboard() {
+  const s = getStats(getChildren());
+  const set = (id, v) => { const e = byId(id); if (e) e.textContent = v; };
+  set("totalChildren", s.total);
+  set("totalNormal", s.normal);
+  set("totalUnder", s.uw);
+  set("totalSevere", s.suw);
+  set("totalOver", s.ow);
+  set("totalStunted", s.stunted);
+  set("totalWasted", s.wasted);
+  renderStatusChart(s);
+}
+
+function renderStatusChart(s) {
+  const cv = byId("statusChart");
+  if (!cv || typeof Chart === "undefined") return;
+  const labels = ["Normal", "Underweight", "Severely Underweight", "Overweight", "Stunted", "Wasted"];
+  const data = [s.normal, s.uw, s.suw, s.ow, s.stunted, s.wasted];
+  const colors = ["#1a7a4c", "#ffb300", "#c62828", "#fb8c00", "#8e24aa", "#1e88e5"];
+  if (statusChartInst) statusChartInst.destroy();
+  statusChartInst = new Chart(cv, {
+    type: "bar",
+    data: { labels, datasets: [{ label: "Children", data, backgroundColor: colors, borderRadius: 8 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+    plugins: [{
+      id: "vals",
+      afterDatasetsDraw(c) {
+        const ctx = c.ctx;
+        ctx.save();
+        ctx.font = "bold 13px Poppins, sans-serif";
+        ctx.fillStyle = "#222";
+        ctx.textAlign = "center";
+        c.getDatasetMeta(0).data.forEach((b, i) => ctx.fillText(data[i], b.x, b.y - 6));
+        ctx.restore();
+      },
+    }],
+  });
+}
+
+// ==================== ADD FORM ====================
 const childForm = document.getElementById('childForm');
-if(childForm){
-  childForm.addEventListener('submit', async (e)=>{
+if (childForm) {
+  childForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const dob = document.getElementById('cDOB').value;
-    const measured = document.getElementById('cDate').value;
+    const dob = byId("cDOB").value, measured = byId("cDate").value;
+    if (dob > measured) return alert("Date of Birth cannot be later than Date Measured.");
     const age = computeAgeInMonths(dob, measured);
-    const w = parseFloat(document.getElementById('cWeight').value);
-    const h = parseFloat(document.getElementById('cHeight').value);
-    const sex = document.getElementById('cGender').value;
-    const wfa = classifyWFA(age,w,sex);
-    const hfa = classifyHFA(age,h,sex);
-    const wfh = classifyWFH(h,w,sex);
-    const editId = document.getElementById('editId').value;
-    const record = {
-      id: editId || 'id_'+Date.now()+'_'+Math.random().toString(36).substr(2,5),
-      no: getChildren().length+1,
-      purok: document.getElementById('cPurok').value,
-      address: document.getElementById('cAddress').value,
-      mother: document.getElementById('cMother').value,
-      name: document.getElementById('cName').value,
-      ip: document.getElementById('cIP').value,
-      gender: sex,
-      dob: dob,
-      date: measured,
-      weight: w,
-      height: h,
-      age: age,
-      wfa: wfa,
-      hfa: hfa,
-      wfh: wfh,
-      status: wfa, // for dashboard cards
-      bmi: w,
+    if (age == null) return alert("Please enter a valid Date of Birth and Date Measured.");
+    if (age > 59) return alert("Age is " + age + " months. Coverage is only 0-59 months.");
+    const w = parseFloat(byId("cWeight").value), h = parseFloat(byId("cHeight").value);
+    const sex = byId("cGender").value;
+    const wfa = classifyWFA(age, w, sex), hfa = classifyHFA(age, h, sex), wfh = classifyWFH(h, w, sex);
+    const list = getChildren();
+    list.push({
+      id: "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+      no: list.length + 1,
+      purok: byId("cPurok").value,
+      address: byId("cAddress").value.trim(),
+      mother: byId("cMother").value.trim(),
+      name: byId("cName").value.trim(),
+      ip: byId("cIP").value,
+      gender: sex, dob, date: measured, weight: w, height: h, age, wfa, hfa, wfh,
+      status: wfa,
+      bmi: Math.round((w / Math.pow(h / 100, 2)) * 10) / 10,
       created_by: getCurrentUsernameGlobal(),
-      updated_by: getCurrentUsernameGlobal(),
-      created_at: new Date().toISOString()
-    };
-    let list = getChildren();
-    if(editId){
-      const idx = list.findIndex(x=>x.id===editId);
-      if(idx>=0) list[idx]= {...list[idx], ...record};
-    }else{
-      list.push(record);
-    }
+      created_at: new Date().toISOString(),
+    });
     saveChildren(list);
-    alert('Record saved! WFA:'+wfa+' HFA:'+hfa+' WFH:'+wfh);
+    alert("Record saved!  WFA: " + wfa + "  |  HFA: " + hfa + "  |  WFL/H: " + wfh);
     resetForm();
-    renderTable();
-    renderDashboard();
+    refreshAll();
   });
 }
 
@@ -687,148 +744,388 @@ function resetForm(){
 }
 window.resetForm = resetForm;
 
-// Render table with 15 columns
-function renderTable(){
-  const tbody = document.querySelector('#recordsTable tbody');
-  if(!tbody) return;
-  const list = getChildren();
-  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
-  const filter = document.getElementById('filterStatus')?.value || '';
-  let filtered = list.filter(c=>{
-    const txt = `${c.name} ${c.mother} ${c.purok} ${c.address} ${c.wfa} ${c.hfa} ${c.wfh}`.toLowerCase();
-    if(search && !txt.includes(search)) return false;
-    if(filter && !(c.wfa===filter || c.hfa===filter || c.wfh===filter || c.status===filter)) return false;
-    return true;
+// ==================== ALL RECORDS ====================
+function matchesStatus(c, f) {
+  if (!f) return true;
+  if (f === "S") return c.hfa === "S" || c.hfa === "SS";
+  if (f === "W") return c.wfh === "W" || c.wfh === "SW";
+  if (f === "N") return c.wfa === "N";
+  if (f === "UW" || f === "SUW") return c.wfa === f;
+  if (f === "OW") return c.wfa === "OW" || c.wfh === "OW";
+  if (f === "SS") return c.hfa === "SS";
+  if (f === "SW") return c.wfh === "SW";
+  if (f === "O") return c.wfh === "O";
+  return false;
+}
+function getFilteredRecords() {
+  const search = (byId("searchInput")?.value || "").toLowerCase().trim();
+  const filter = byId("filterStatus")?.value || "";
+  return getChildren().filter((c) => {
+    const txt = `${c.name} ${c.mother} ${c.purok} ${c.address}`.toLowerCase();
+    if (search && !txt.includes(search)) return false;
+    return matchesStatus(c, filter);
   });
-  tbody.innerHTML='';
-  filtered.forEach((c,i)=>{
-    const tr=document.createElement('tr');
-    const wfaColor = c.wfa==='N' ? '#4caf50' : c.wfa==='UW' ? '#ff9800' : c.wfa==='SUW' ? '#f44336' : '#ffeb3b';
-    const hfaColor = c.hfa==='N' ? '#4caf50' : c.hfa==='S' ? '#ff9800' : c.hfa==='SS' ? '#f44336' : '#8bc34a';
-    const wfhColor = c.wfh==='N' ? '#4caf50' : c.wfh==='W' ? '#ff9800' : c.wfh==='SW' ? '#f44336' : '#ffeb3b';
-    tr.innerHTML=`
-      <td>${i+1}</td>
-      <td>${c.purok||''}</td>
-      <td title="${c.address||''}"><span style="display:inline-block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.address||''}</span></td>
-      <td>${c.mother||''}</td>
-      <td><b>${c.name||''}</b></td>
-      <td>${c.ip||'NO'}</td>
-      <td>${(c.gender||'').toString().charAt(0).toUpperCase()}</td>
-      <td>${c.dob||''}</td>
-      <td>${c.date||''}</td>
-      <td>${c.weight||''}</td>
-      <td>${c.height||''}</td>
-      <td>${c.age!=null?c.age:''}</td>
-      <td><span class="badge" style="background:${wfaColor};color:${c.wfa==='N'?'#fff':'#000'};padding:4px 8px;border-radius:6px;font-weight:700">${c.wfa||'N'}</span></td>
-      <td><span class="badge" style="background:${hfaColor};color:#fff;padding:4px 8px;border-radius:6px;font-weight:700">${c.hfa||'N'}</span></td>
-      <td><span class="badge" style="background:${wfhColor};color:#000;padding:4px 8px;border-radius:6px;font-weight:700">${c.wfh||'N'}</span></td>
-      <td>
-        <button class="btn-outline" style="padding:4px 8px;font-size:11px" onclick="editChild('${c.id}')">✏️</button>
-        <button class="btn-outline" style="padding:4px 8px;font-size:11px" onclick="deleteChild('${c.id}')">🗑️</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-  if(filtered.length===0){
-    tbody.innerHTML='<tr><td colspan="16" style="text-align:center;padding:20px;color:#888">No records found. Add child information using 15 columns format.</td></tr>';
+}
+
+function actionButtons(id) {
+  return `<button class="btn-outline btn-mini" title="Edit" onclick="editChild('${id}')">✏️</button>
+          <button class="btn-outline btn-mini" title="Delete" onclick="deleteChild('${id}')">🗑️</button>`;
+}
+
+function renderTable() {
+  const tbody = document.querySelector("#recordsTable tbody");
+  if (!tbody) return;
+  const list = getFilteredRecords();
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:20px;color:#888">No records found.</td></tr>';
+    return;
   }
+  tbody.innerHTML = list.map((c, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${esc(c.purok)}</td>
+      <td title="${esc(c.address)}"><span class="addr-ellipsis">${esc(c.address)}</span></td>
+      <td>${esc(c.mother)}</td>
+      <td><b>${esc(c.name)}</b></td>
+      <td>${esc(c.ip || "NO")}</td>
+      <td>${sexLetter(c.gender)}</td>
+      <td>${esc(c.dob)}</td>
+      <td>${esc(c.date)}</td>
+      <td>${esc(c.weight)}</td>
+      <td>${esc(c.height)}</td>
+      <td>${c.age != null ? esc(c.age) : ""}</td>
+      <td>${st(c.wfa)}</td>
+      <td>${st(c.hfa)}</td>
+      <td>${st(c.wfh)}</td>
+      <td>${actionButtons(c.id)}</td>
+    </tr>`).join("");
 }
 window.renderTable = renderTable;
 
-function editChild(id){
-  const c = getChildren().find(x=>x.id===id);
-  if(!c) return;
-  document.querySelector('[data-view="add"]')?.click();
-  document.getElementById('editId').value=c.id;
-  document.getElementById('cPurok').value=c.purok||'';
-  document.getElementById('cAddress').value=c.address||'';
-  document.getElementById('cMother').value=c.mother||'';
-  document.getElementById('cName').value=c.name||'';
-  document.getElementById('cIP').value=c.ip||'NO';
-  document.getElementById('cGender').value=c.gender||'';
-  document.getElementById('cDOB').value=c.dob||'';
-  document.getElementById('cDate').value=c.date||'';
-  document.getElementById('cWeight').value=c.weight||'';
-  document.getElementById('cHeight').value=c.height||'';
-  autoComputeEOPT();
-  window.scrollTo(0,0);
+const REC_HEAD = ["No.", "Purok", "Address", "Mother/Caregiver", "Child", "IP Group", "Sex", "Date of Birth",
+  "Date Measured", "Weight (kg)", "Height (cm)", "Age (months)", "WFA", "HFA", "WFL/H"];
+function recRow(c, i) {
+  return [i + 1, c.purok, c.address, c.mother, c.name, c.ip || "NO", sexLetter(c.gender), c.dob, c.date,
+    c.weight, c.height, c.age, c.wfa, c.hfa, c.wfh];
+}
+
+// ==================== EXPORT / PRINT HELPERS ====================
+function downloadCSV(filename, headers, rows) {
+  const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const csv = "\uFEFF" + [headers, ...rows].map((r) => r.map(q).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+function printTable(title, sub, headers, rows, footer) {
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
+  <style>@page{size:A4 landscape;margin:10mm}
+  body{font-family:Arial,sans-serif;font-size:10px;color:#111}
+  h2{text-align:center;margin:0 0 4px;font-size:16px}
+  p{text-align:center;margin:0 0 10px;font-size:11px}
+  table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid #444;padding:3px 5px;text-align:left}
+  th{background:#6da8d1;color:#fff}
+  tr{page-break-inside:avoid}
+  .f{margin-top:10px;font-size:9px;color:#444}</style></head><body>
+  <h2>${esc(title)}</h2><p>${esc(sub)}</p>
+  <table><thead><tr>${headers.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
+  <tbody>${rows.map((r) => `<tr>${r.map((v) => `<td>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+  <div class="f">${footer || ""}</div></body></html>`;
+  const fr = document.createElement("iframe");
+  fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(fr);
+  const d = fr.contentWindow.document;
+  d.open(); d.write(html); d.close();
+  setTimeout(() => {
+    fr.contentWindow.focus();
+    fr.contentWindow.print();
+    setTimeout(() => fr.remove(), 2000);
+  }, 300);
+}
+const TODAY = () => new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+const LEGEND = "<b>Legend:</b> WFA: N=Normal, UW=Underweight, SUW=Severely Underweight, OW=Overweight | HFA: N=Normal, S=Stunted, SS=Severely Stunted, T=Tall | WFL/H: N=Normal, W=Wasted, SW=Severely Wasted, OW=Overweight, O=Obese";
+
+function exportAllToExcel() {
+  const list = getFilteredRecords();
+  if (!list.length) return alert("Walang records na i-export.");
+  downloadCSV("e-OPT-PLUS-SAOG-15columns.csv", REC_HEAD, list.map(recRow));
+}
+function printAllRecords() {
+  const list = getFilteredRecords();
+  if (!list.length) return alert("Walang records na i-print.");
+  printTable("e-OPT PLUS - All Records (Barangay Saog)",
+    "Barangay: SAOG | Municipality: MARILAO | Province: Bulacan | Region: III Central Luzon | Printed: " + TODAY(),
+    REC_HEAD, list.map(recRow), LEGEND);
+}
+window.exportAllToExcel = exportAllToExcel;
+window.printAllRecords = printAllRecords;
+
+// ==================== PUROK MONITORING ====================
+function purokList() {
+  const q = (byId("purokSearch")?.value || "").toLowerCase().trim();
+  return getChildren().filter((c) => {
+    if (c.purok !== activePurok) return false;
+    return !q || `${c.name} ${c.mother} ${c.address}`.toLowerCase().includes(q);
+  });
+}
+function initPurok() { renderPurok(); }
+function renderPurok() {
+  const tabs = byId("purokTabs");
+  if (!tabs) return;
+  tabs.innerHTML = "";
+  PUROK_LIST.forEach((p) => {
+    const b = document.createElement("button");
+    b.className = "purok-tab" + (p === activePurok ? " active" : "");
+    b.textContent = p;
+    b.onclick = () => { activePurok = p; renderPurok(); };
+    tabs.appendChild(b);
+  });
+  const all = getChildren().filter((c) => c.purok === activePurok);
+  const s = getStats(all);
+  const box = byId("purokStats");
+  if (box) box.innerHTML = `
+    <div class="card card-total"><h3>${s.total}</h3><p>Total Children - ${activePurok}</p></div>
+    <div class="card normal"><h3>${s.normal}</h3><p>Normal</p></div>
+    <div class="card under"><h3>${s.uw}</h3><p>Underweight</p></div>
+    <div class="card severely"><h3>${s.suw}</h3><p>Severely Underweight</p></div>
+    <div class="card over"><h3>${s.ow}</h3><p>Overweight</p></div>
+    <div class="card stunted"><h3>${s.stunted}</h3><p>Stunted</p></div>
+    <div class="card wasted"><h3>${s.wasted}</h3><p>Wasted</p></div>`;
+  const tbody = document.querySelector("#purokTable tbody");
+  const list = purokList();
+  tbody.innerHTML = list.length ? list.map((c) => `
+    <tr>
+      <td><b>${esc(c.name)}</b></td>
+      <td>${sexLetter(c.gender)}</td>
+      <td>${c.age != null ? esc(c.age) : ""}</td>
+      <td>${esc(c.address)}</td>
+      <td>${esc(c.weight)}</td>
+      <td>${esc(c.height)}</td>
+      <td>${st(c.wfa)}</td><td>${st(c.hfa)}</td><td>${st(c.wfh)}</td>
+      <td>${actionButtons(c.id)}</td>
+    </tr>`).join("")
+    : `<tr><td colspan="10" style="text-align:center;padding:20px;color:#888">Walang records sa ${activePurok}.</td></tr>`;
+}
+const PUROK_HEAD = ["Name", "Sex", "Age (months)", "Address", "Weight (kg)", "Height (cm)", "WFA", "HFA", "WFL/H"];
+const purokRow = (c) => [c.name, sexLetter(c.gender), c.age, c.address, c.weight, c.height, c.wfa, c.hfa, c.wfh];
+function exportPurokToExcel() {
+  const list = purokList();
+  if (!list.length) return alert("Walang records sa " + activePurok + ".");
+  downloadCSV(`Purok-Monitoring-${activePurok.replace(" ", "")}.csv`, PUROK_HEAD, list.map(purokRow));
+}
+function printPurokReport() {
+  const list = purokList();
+  if (!list.length) return alert("Walang records sa " + activePurok + ".");
+  printTable("Purok Monitoring - " + activePurok + " (Barangay Saog)",
+    "Coverage: 0-59 Months | Printed: " + TODAY(), PUROK_HEAD, list.map(purokRow), LEGEND);
+}
+window.renderPurok = renderPurok;
+window.initPurok = initPurok;
+
+// ==================== FEEDING PROGRAM ====================
+function feedingBase() { return getChildren().filter((c) => c.wfa === "UW" || c.wfa === "SUW"); }
+function feedingList() {
+  const q = (byId("feedingSearch")?.value || "").toLowerCase().trim();
+  return feedingBase().filter((c) => !q || `${c.name} ${c.purok} ${c.address}`.toLowerCase().includes(q));
+}
+function renderFeeding() {
+  const base = feedingBase();
+  const counts = {};
+  PUROK_LIST.forEach((p) => (counts[p] = 0));
+  base.forEach((c) => { if (c.purok) counts[c.purok] = (counts[c.purok] || 0) + 1; });
+  const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const max = ranked[0] ? ranked[0][1] : 0;
+  byId("feedTotal").textContent = base.length;
+  byId("feedPurokCount").textContent = ranked.filter((r) => r[1] > 0).length;
+  byId("topPurokName").textContent = max > 0 ? `${ranked[0][0]} (${max})` : "-";
+  byId("purokRankingList").innerHTML = ranked.map(([p, n], i) => `
+    <div class="rank-row">
+      <span class="rank-no">${i + 1}</span><span class="rank-name">${p}</span>
+      <div class="rank-bar"><div style="width:${max ? (n / max) * 100 : 0}%"></div></div><b>${n}</b>
+    </div>`).join("");
+  const list = feedingList();
+  document.querySelector("#feedingTable tbody").innerHTML = list.length ? list.map((c) => `
+    <tr>
+      <td><b>${esc(c.name)}</b></td><td>${sexLetter(c.gender)}</td><td>${esc(c.purok)}</td>
+      <td>${c.age != null ? esc(c.age) + " mos" : ""}</td><td>${st(c.wfa)}</td>
+      <td>${esc(c.weight)} kg</td><td>${esc(c.address)}</td>
+    </tr>`).join("")
+    : '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888">Walang Underweight na bata.</td></tr>';
+}
+const FEED_HEAD = ["Name", "Sex", "Purok", "Age (months)", "WFA Status", "Weight (kg)", "Address"];
+const feedRow = (c) => [c.name, sexLetter(c.gender), c.purok, c.age, c.wfa, c.weight, c.address];
+function exportFeedingToExcel() {
+  const list = feedingList();
+  if (!list.length) return alert("Walang records na i-export.");
+  downloadCSV("Feeding-Program-List.csv", FEED_HEAD, list.map(feedRow));
+}
+function printFeedingReport() {
+  const list = feedingList();
+  if (!list.length) return alert("Walang records na i-print.");
+  printTable("Barangay Saog - Feeding Program Priority List",
+    "Office Hours: 7:30AM - 4:00PM | Coverage: 0-59 Months | Generated: " + TODAY(),
+    FEED_HEAD, list.map(feedRow), "WFA: UW=Underweight, SUW=Severely Underweight");
+}
+window.renderFeeding = renderFeeding;
+
+// ==================== EDIT (modal - stays in All Records) ====================
+function editChild(id) {
+  const c = getChildren().find((x) => x.id === id);
+  if (!c) return;
+  const set = (k, v) => { byId(k).value = v == null ? "" : v; };
+  set("uEditId", c.id);
+  set("uPurok", c.purok);
+  set("uAddress", c.address);
+  set("uMother", c.mother);
+  set("uName", c.name);
+  set("uIP", c.ip || "NO");
+  set("uGender", sexFull(c.gender));
+  set("uDOB", c.dob);
+  set("uDate", c.date);
+  set("uWeight", c.weight);
+  set("uHeight", c.height);
+  set("uAge", c.age);
+  calcUpdateEOPT();
+  byId("updateChildModal").classList.add("show");
+}
+function closeUpdateChildModal() { byId("updateChildModal").classList.remove("show"); }
+
+function calcUpdateEOPT() {
+  const dob = byId("uDOB").value, meas = byId("uDate").value, sex = byId("uGender").value;
+  const w = parseFloat(byId("uWeight").value), h = parseFloat(byId("uHeight").value);
+  let age = computeAgeInMonths(dob, meas);
+  if (age != null) byId("uAge").value = age;
+  else { age = parseInt(byId("uAge").value, 10); if (isNaN(age)) age = null; }
+  const wfa = age != null && !isNaN(w) ? classifyWFA(age, w, sex) : "";
+  const hfa = age != null && !isNaN(h) ? classifyHFA(age, h, sex) : "";
+  const wfh = !isNaN(w) && !isNaN(h) ? classifyWFH(h, w, sex) : "";
+  byId("uBmiValue").textContent = age != null ? age + " months" : "--";
+  byId("uBmiClass").textContent = `WFA: ${wfa || "-"} | HFA: ${hfa || "-"} | WFL/H: ${wfh || "-"}`;
+  byId("uBmiResultBox").classList.add("show");
+  return { age, wfa, hfa, wfh, w, h, sex };
+}
+
+function saveUpdateChild(e) {
+  if (e) e.preventDefault();
+  const r = calcUpdateEOPT();
+  if (r.age == null) return alert("Enter Date of Birth + Date Measured, or the Age in months.");
+  if (r.age < 0 || r.age > 59) return alert("Age must be 0-59 months.");
+  const list = getChildren();
+  const idx = list.findIndex((x) => x.id === byId("uEditId").value);
+  if (idx < 0) return;
+  list[idx] = {
+    ...list[idx],
+    purok: byId("uPurok").value,
+    address: byId("uAddress").value.trim(),
+    mother: byId("uMother").value.trim(),
+    name: byId("uName").value.trim(),
+    ip: byId("uIP").value,
+    gender: r.sex,
+    dob: byId("uDOB").value,
+    date: byId("uDate").value,
+    weight: r.w, height: r.h, age: r.age,
+    wfa: r.wfa, hfa: r.hfa, wfh: r.wfh, status: r.wfa,
+    updated_by: getCurrentUsernameGlobal(),
+    updated_at: new Date().toISOString(),
+  };
+  saveChildren(list);
+  closeUpdateChildModal();
+  refreshAll();
 }
 window.editChild = editChild;
 
-function deleteChild(id){
-  if(!confirm('Delete this record?')) return;
-  let list=getChildren();
-  list=list.filter(x=>x.id!==id);
-  saveChildren(list);
-  renderTable();
-  renderDashboard();
+// ==================== DELETE (modal) ====================
+function deleteChild(id) {
+  const c = getChildren().find((x) => x.id === id);
+  if (!c) return;
+  pendingDeleteId = id;
+  byId("deleteMsg").textContent = `Are you sure you want to delete the record of "${c.name}"?`;
+  byId("deleteModal").classList.add("show");
+}
+function closeDeleteModal() { pendingDeleteId = null; byId("deleteModal").classList.remove("show"); }
+function confirmDelete() {
+  if (pendingDeleteId) saveChildren(getChildren().filter((x) => x.id !== pendingDeleteId));
+  closeDeleteModal();
+  refreshAll();
 }
 window.deleteChild = deleteChild;
 
-function renderDashboard(){
-  const list=getChildren();
-  const total = list.length;
-  const normal = list.filter(c=>c.wfa==='N').length;
-  const under = list.filter(c=>c.wfa==='UW').length;
-  const severe = list.filter(c=>c.wfa==='SUW').length;
-  const over = list.filter(c=>c.wfa==='OW').length;
-  if(document.getElementById('totalChildren')) document.getElementById('totalChildren').textContent=total;
-  if(document.getElementById('totalNormal')) document.getElementById('totalNormal').textContent=normal;
-  if(document.getElementById('totalUnder')) document.getElementById('totalUnder').textContent=under;
-  if(document.getElementById('totalObese')) document.getElementById('totalObese').textContent=severe;
-  if(document.getElementById('totalOver')) document.getElementById('totalOver').textContent=over;
-}
-window.renderDashboard = renderDashboard;
+// ==================== LOGOUT / ACCOUNT ====================
+window.showLogoutModal = window.showLogoutModal || function () { byId("logoutModal").classList.add("show"); };
+window.closeLogoutModal = window.closeLogoutModal || function () { byId("logoutModal").classList.remove("show"); };
+window.confirmLogout = window.confirmLogout || function () { localStorage.removeItem("nt_current"); location.href = "index.html"; };
 
-function initPurok(){ renderPurok(); }
-function renderPurok(){
-  const container=document.getElementById('purokTabs');
-  if(!container) return;
-  const puroks=['PUROK 1- PUNONG TULAY','PUROK 2- GITNA','PUROK 3- BAHAY PARE','PUROK 4- LOMA','PUROK 5- IBABA','PUROK 6- ITAAS'];
-  container.innerHTML='';
-  puroks.forEach(p=>{
-    const btn=document.createElement('button');
-    btn.className='purok-tab';
-    btn.textContent=p;
-    btn.onclick=()=>{ document.getElementById('purokSearch').value=p; renderFeeding(); };
-    container.appendChild(btn);
-  });
-}
-window.renderPurok=renderPurok;
-window.initPurok=initPurok;
+window.showAccountModal = window.showAccountModal || function () {
+  byId("currentUserLabel").textContent = getCurrentUsernameGlobal();
+  ["newUsername", "newPassword", "newPassword2"].forEach((i) => (byId(i).value = ""));
+  byId("accountModal").classList.add("show");
+};
+window.closeAccountModal = window.closeAccountModal || function () { byId("accountModal").classList.remove("show"); };
 
-function renderFeeding(){
-  const tbody=document.querySelector('#feedingTable tbody');
-  if(!tbody) return;
-  const list=getChildren().filter(c=> c.wfa!=='N' || c.hfa!=='N' || c.wfh!=='N');
-  tbody.innerHTML='';
-  list.forEach(c=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${c.name}</td><td>${c.purok}</td><td>${c.wfa}/${c.hfa}/${c.wfh}</td><td>${c.age}m</td>`;
-    tbody.appendChild(tr);
-  });
-}
-window.renderFeeding=renderFeeding;
+window.saveAccountChanges = window.saveAccountChanges || async function () {
+  const old = getCurrentUsernameGlobal();
+  const nu = byId("newUsername").value.trim(), p = byId("newPassword").value, p2 = byId("newPassword2").value;
+  if (!nu || !p) return alert("Fill in all fields.");
+  if (p !== p2) return alert("Passwords do not match!");
+  try {
+    if (typeof getSupabase === "function" && typeof isSupabaseConfigured === "function" && isSupabaseConfigured()) {
+      await getSupabase().from("users").update({ username: nu, password: p }).eq("username", old);
+    }
+  } catch (e) { console.warn(e); }
+  const users = JSON.parse(localStorage.getItem("nt_users") || "[]");
+  const u = users.find((x) => x.username === old);
+  if (u) { u.username = nu; u.password = p; }
+  localStorage.setItem("nt_users", JSON.stringify(users));
+  const cu = getCurrentUserGlobal() || {};
+  cu.username = nu; cu.password = p;
+  localStorage.setItem("nt_current", JSON.stringify(cu));
+  const data = localStorage.getItem("nt_children_" + old);
+  if (data && old !== nu) { localStorage.setItem("nt_children_" + nu, data); localStorage.removeItem("nt_children_" + old); }
+  alert("Account updated!");
+  location.reload();
+};
 
-function exportAllToExcel(){
-  const list=getChildren();
-  let csv='No.,Purok,Address,Mother,Child,IP Group,Sex,DOB,Date Measured,Weight,Height,Age Months,WFA,HFA,WFH\\n';
-  list.forEach((c,i)=>{
-    csv+=`${i+1},"${c.purok}","${c.address}","${c.mother}","${c.name}","${c.ip}","${c.gender}","${c.dob}","${c.date}",${c.weight},${c.height},${c.age},${c.wfa},${c.hfa},${c.wfh}\\n`;
-  });
-  const blob=new Blob([csv],{type:'text/csv'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download='e-OPT-PLUS-SAOG-15columns.csv'; a.click();
-}
-window.exportAllToExcel=exportAllToExcel;
-function printAllRecords(){ window.print(); }
-window.printAllRecords=printAllRecords;
+window.showDeleteAccountModal = window.showDeleteAccountModal || function () {
+  const u = getCurrentUsernameGlobal();
+  byId("deleteAccountUsername").textContent = u;
+  byId("deleteConfirmUsernameLabel").textContent = u;
+  byId("deleteAccountRecords").textContent = getChildren().length;
+  byId("deleteConfirmInput").value = "";
+  byId("accountModal").classList.remove("show");
+  byId("deleteAccountModal").classList.add("show");
+};
+window.closeDeleteAccountModal = window.closeDeleteAccountModal || function () { byId("deleteAccountModal").classList.remove("show"); };
+window.confirmDeleteAccount = window.confirmDeleteAccount || async function () {
+  const u = getCurrentUsernameGlobal();
+  if (byId("deleteConfirmInput").value.trim() !== u) return alert("Username does not match.");
+  try {
+    if (typeof getSupabase === "function" && typeof isSupabaseConfigured === "function" && isSupabaseConfigured()) {
+      await getSupabase().from("users").delete().eq("username", u);
+    }
+  } catch (e) { console.warn(e); }
+  const users = JSON.parse(localStorage.getItem("nt_users") || "[]").filter((x) => x.username !== u);
+  localStorage.setItem("nt_users", JSON.stringify(users));
+  localStorage.removeItem("nt_current");
+  alert("Account deleted. Child records were kept.");
+  location.href = "index.html";
+};
 
-// Init
+// ==================== MODALS: click outside / Esc ====================
+document.querySelectorAll(".modal-overlay").forEach((ov) => {
+  ov.addEventListener("mousedown", (e) => { if (e.target === ov) ov.classList.remove("show"); });
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") document.querySelectorAll(".modal-overlay.show").forEach((m) => m.classList.remove("show"));
+});
+
+// ==================== INIT ====================
 document.addEventListener('DOMContentLoaded',()=>{
-  renderDashboard();
-  renderTable();
+  if (!isDashboard) return;
+  refreshAll();
   const s=document.getElementById('searchInput');
   if(s) s.addEventListener('input', renderTable);
   const f=document.getElementById('filterStatus');
