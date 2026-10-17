@@ -10,6 +10,7 @@
       rel="stylesheet"
     />
     <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="supabase.js"></script>
   </head>
   <body>
@@ -71,12 +72,20 @@
               <p>Underweight</p>
             </div>
             <div class="card severely">
-              <h3 id="totalObese">0</h3>
+              <h3 id="totalSevere">0</h3>
               <p>Severely Underweight</p>
             </div>
             <div class="card over">
               <h3 id="totalOver">0</h3>
               <p>Overweight</p>
+            </div>
+            <div class="card stunted">
+              <h3 id="totalStunted">0</h3>
+              <p>Stunted (Height-for-Age)</p>
+            </div>
+            <div class="card wasted">
+              <h3 id="totalWasted">0</h3>
+              <p>Wasted (Weight-for-Ht)</p>
             </div>
           </div>
           <div class="chart-box">
@@ -89,7 +98,7 @@
             </div>
           </div>
         </section>
-        
+
         <section id="view-add" class="view">
           <div class="eopt-header">
             <h2>Community Level e-OPT PLUS Tool</h2>
@@ -113,17 +122,17 @@
               <label>2. Purok *</label>
               <select id="cPurok" required>
                 <option value="">Select Purok</option>
-                <option>PUROK 1- PUNONG TULAY</option>
-                <option>PUROK 2- GITNA</option>
-                <option>PUROK 3- BAHAY PARE</option>
-                <option>PUROK 4- LOMA</option>
-                <option>PUROK 5- IBABA</option>
-                <option>PUROK 6- ITAAS</option>
+                <option>Purok 1</option>
+                <option>Purok 2</option>
+                <option>Purok 3</option>
+                <option>Purok 4</option>
+                <option>Purok 5</option>
+                <option>Purok 6</option>
               </select>
             </div>
             <div class="full">
-              <label>3. Address or Location of Child's Residence (Purok, Block #, Area) *</label>
-              <input type="text" id="cAddress" required placeholder="e.g. PUROK 1- PUNONG TULAY, Block 2, Saog"/>
+              <label>3. Address or Location of Child's Residence (Block #, Area) *</label>
+              <input type="text" id="cAddress" required placeholder="e.g. Block 2, Phase 1"/>
             </div>
             <div>
               <label>4. Name of Mother or Caregiver *</label>
@@ -143,10 +152,8 @@
             </div>
             <div>
               <label>7. Sex *</label>
-              <select id="cGender" required>
+              <select id="cGender" required onchange="autoComputeEOPT()">
                 <option value="">Select</option>
-                <option value="M">M</option>
-                <option value="F">F</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
               </select>
@@ -194,7 +201,7 @@
             </div>
           </form>
         </section>
-        
+
         <section id="view-records" class="view">
           <div class="view-head">
             <div>
@@ -210,9 +217,12 @@
                 <option value="N">Normal</option>
                 <option value="UW">Underweight</option>
                 <option value="SUW">Severely Underweight</option>
-                <option value="S">Stunted</option>
-                <option value="W">Wasted</option>
                 <option value="OW">Overweight</option>
+                <option value="S">Stunted (incl. Severely)</option>
+                <option value="SS">Severely Stunted</option>
+                <option value="W">Wasted (incl. Severely)</option>
+                <option value="SW">Severely Wasted</option>
+                <option value="O">Obese</option>
               </select>
             </div>
           </div>
@@ -221,7 +231,7 @@
               <thead>
                 <tr style="background:#6da8d1;color:#fff">
                   <th style="min-width:50px">1<br>No.</th>
-                  <th style="min-width:140px">2<br>Purok</th>
+                  <th style="min-width:100px">2<br>Purok</th>
                   <th style="min-width:180px">3<br>Address/Location</th>
                   <th style="min-width:160px">4<br>Name of Mother/Caregiver</th>
                   <th style="min-width:160px">5<br>Full Name of Child</th>
@@ -246,6 +256,7 @@
             <b>Source:</b> WHO Child Growth Standards 2006 adopted by NNC (www.nnc.gov.ph) | Weight for Age & Height for Age tables from e-OPT PLUS Tool | Weight-for-Length/Height from WHO https://www.who.int/tools/child-growth-standards/standards/weight-for-length-height
           </div>
         </section>
+
         <section id="view-purok" class="view">
           <h2>Purok Monitoring</h2>
           <div class="purok-header">
@@ -272,11 +283,14 @@
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Gender</th>
-                  <th>Age</th>
+                  <th>Sex</th>
+                  <th>Age (mos)</th>
                   <th>Address</th>
-                  <th>BMI</th>
-                  <th>Status</th>
+                  <th>Weight</th>
+                  <th>Height</th>
+                  <th>WFA</th>
+                  <th>HFA</th>
+                  <th>WFL/H</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -284,10 +298,11 @@
             </table>
           </div>
         </section>
+
         <section id="view-feeding" class="view">
           <h2>Feeding Program Priority List</h2>
           <p>
-            Auto-generated: List of all Underweight children. Priority purok
+            Auto-generated: List of all Underweight and Severely Underweight children. Priority purok
             ranking shows which areas need feeding program the most.
           </p>
           <div class="cards">
@@ -329,25 +344,16 @@
               🖨️ Print Report
             </button>
           </div>
-          <div id="printHeader" class="print-header-hidden">
-            <h2 class="print-title">
-              Barangay Saog - Feeding Program Priority List
-            </h2>
-            <p class="print-sub">
-              Office Hours: 7:30AM - 4:00PM | Coverage: 0-59 Months | Generated:
-              <span id="printDate"></span>
-            </p>
-          </div>
           <div class="table-wrap">
             <table id="feedingTable">
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Gender</th>
+                  <th>Sex</th>
                   <th>Purok</th>
                   <th>Age</th>
-                  <th>Status</th>
-                  <th>BMI</th>
+                  <th>WFA Status</th>
+                  <th>Weight</th>
                   <th>Address</th>
                 </tr>
               </thead>
@@ -357,81 +363,50 @@
         </section>
       </main>
     </div>
+
     <div class="modal-overlay" id="logoutModal">
       <div class="modal">
         <div class="logout-icon">👋</div>
         <h3>Confirm Logout?</h3>
         <p>Are you sure you want to logout from NutriTrack Saog?</p>
         <div class="modal-actions">
-          <button class="btn-outline" onclick="closeLogoutModal()">
-            Cancel
-          </button>
-          <button
-            class="btn-secondary btn-logout-confirm"
-            onclick="confirmLogout()"
-          >
+          <button class="btn-outline" onclick="closeLogoutModal()">Cancel</button>
+          <button class="btn-secondary btn-logout-confirm" onclick="confirmLogout()">
             Yes, Logout
           </button>
         </div>
       </div>
     </div>
+
     <div class="modal-overlay" id="deleteModal">
       <div class="modal">
         <h3>Delete Record?</h3>
         <p id="deleteMsg">Are you sure you want to delete this child record?</p>
         <div class="modal-actions">
-          <button class="btn-outline" onclick="closeDeleteModal()">
-            Cancel
-          </button>
-          <button class="btn-delete" onclick="confirmDelete()">
-            Yes, Delete
-          </button>
+          <button class="btn-outline" onclick="closeDeleteModal()">Cancel</button>
+          <button class="btn-delete" onclick="confirmDelete()">Yes, Delete</button>
         </div>
       </div>
     </div>
+
     <div class="modal-overlay" id="accountModal">
       <div class="modal modal-account">
         <div class="account-header">
           <div class="account-icon">⚙️</div>
           <h3>Account Settings</h3>
-          <p class="account-sub">
-            Change username & password - your records will stay!
-          </p>
+          <p class="account-sub">Change username & password - your records will stay!</p>
         </div>
         <div class="account-form">
-          <label class="account-label"
-            >Current Username: <b id="currentUserLabel">-</b></label
-          >
+          <label class="account-label">Current Username: <b id="currentUserLabel">-</b></label>
           <label class="account-label mt-14">New Username *</label>
-          <input
-            type="text"
-            id="newUsername"
-            placeholder="New username"
-            class="account-input"
-          />
+          <input type="text" id="newUsername" placeholder="New username" class="account-input" />
           <label class="account-label">New Password *</label>
           <div class="account-pass-wrap">
-            <input
-              type="password"
-              id="newPassword"
-              placeholder="New password"
-              class="account-input account-input-pass"
-            />
-            <button
-              type="button"
-              onclick="togglePass('newPassword', this)"
-              class="show-pass account-show-btn"
-            >
-              Show
-            </button>
+            <input type="password" id="newPassword" placeholder="New password" class="account-input account-input-pass" />
+            <button type="button" onclick="togglePass('newPassword', this)" class="show-pass account-show-btn">Show</button>
           </div>
           <label class="account-label">Confirm New Password *</label>
-          <input
-            type="password"
-            id="newPassword2"
-            placeholder="Confirm new password"
-            class="account-input"
-          />
+          <input type="password" id="newPassword2" placeholder="Confirm new password" class="account-input" />
           <div class="account-note">
             <b>📌 Note:</b> Your child records (Total Children, etc.) will
             remain. Only login credentials will change. Old username's records
@@ -439,107 +414,58 @@
           </div>
         </div>
         <div class="account-actions">
-          <button onclick="showDeleteAccountModal()" class="btn-delete-account">
-            🗑️ Delete Account
-          </button>
-          <button
-            class="btn-primary btn-save-account"
-            onclick="saveAccountChanges()"
-            id="saveAccountBtn"
-          >
-            💾 Save Changes
-          </button>
+          <button onclick="showDeleteAccountModal()" class="btn-delete-account">🗑️ Delete Account</button>
+          <button class="btn-primary btn-save-account" onclick="saveAccountChanges()" id="saveAccountBtn">💾 Save Changes</button>
         </div>
         <div class="account-cancel-wrap">
-          <button
-            class="btn-outline btn-cancel-account"
-            onclick="closeAccountModal()"
-          >
-            Cancel
-          </button>
+          <button class="btn-outline btn-cancel-account" onclick="closeAccountModal()">Cancel</button>
         </div>
         <p class="account-delete-hint">
           Delete removes account only. Child records will be kept in the system.
         </p>
       </div>
     </div>
+
     <div class="modal-overlay" id="deleteAccountModal">
       <div class="modal modal-delete-account">
         <div class="delete-account-header">
           <div class="delete-icon">⚠️</div>
           <h3 class="delete-title">Delete Account?</h3>
-          <p class="delete-sub">
-            Are you sure you want to <b>permanently delete</b> your account?
-          </p>
+          <p class="delete-sub">Are you sure you want to <b>permanently delete</b> your account?</p>
         </div>
         <div class="delete-info-box">
           <p><b>Username:</b> <span id="deleteAccountUsername">-</span></p>
-          <p>
-            <b>Records:</b> <span id="deleteAccountRecords">0</span> Your child
-            records will be kept in the system
-          </p>
+          <p><b>Records:</b> <span id="deleteAccountRecords">0</span> Your child records will be kept in the system</p>
           <p class="delete-warning">
             ❗ This action cannot be undone! Your account will be permanently
             removed, but all child records will be kept.
           </p>
         </div>
         <div class="delete-confirm-wrap">
-          <label class="account-label"
-            >Type your username to confirm:
-            <b id="deleteConfirmUsernameLabel">-</b></label
-          >
-          <input
-            type="text"
-            id="deleteConfirmInput"
-            placeholder="Type username to confirm"
-            class="account-input delete-confirm-input"
-          />
+          <label class="account-label">Type your username to confirm: <b id="deleteConfirmUsernameLabel">-</b></label>
+          <input type="text" id="deleteConfirmInput" placeholder="Type username to confirm" class="account-input delete-confirm-input" />
         </div>
         <div class="modal-actions">
-          <button class="btn-outline" onclick="closeDeleteAccountModal()">
-            Cancel
-          </button>
-          <button
-            class="btn-delete btn-confirm-delete"
-            onclick="confirmDeleteAccount()"
-            id="confirmDeleteAccountBtn"
-          >
+          <button class="btn-outline" onclick="closeDeleteAccountModal()">Cancel</button>
+          <button class="btn-delete btn-confirm-delete" onclick="confirmDeleteAccount()" id="confirmDeleteAccountBtn">
             🗑️ Yes, Delete My Account
           </button>
         </div>
       </div>
     </div>
+
+    <!-- UPDATE CHILD MODAL (edit stays in All Records) -->
     <div class="modal-overlay" id="updateChildModal">
       <div class="modal modal-update-child">
-        <button class="modal-close-x" onclick="closeUpdateChildModal()">
-          ✕
-        </button>
+        <button type="button" class="modal-close-x" onclick="closeUpdateChildModal()" title="Close">✕</button>
         <div class="update-child-header">
           <div class="update-child-icon">✏️</div>
           <h3>Update Child Information</h3>
-          <p class="update-child-sub">
-            Edit the child record - stays in All Records
-          </p>
+          <p class="update-child-sub">Edit the child record - stays in All Records</p>
         </div>
-        <form id="updateChildForm" class="update-form">
+        <form id="updateChildForm" class="update-form" onsubmit="saveUpdateChild(event)">
           <input type="hidden" id="uEditId" />
           <div class="update-grid">
-            <div class="update-field">
-              <label>Child's Full Name *</label
-              ><input type="text" id="uName" required />
-            </div>
-            <div class="update-field">
-              <label>Gender *</label>
-              <select id="uGender" required>
-                <option value="">Select Gender</option>
-                <option value="Male">Male - Lalaki</option>
-                <option value="Female">Female - Babae</option>
-              </select>
-            </div>
-            <div class="update-field">
-              <label>Age (months) 0-59 *</label
-              ><input type="number" id="uAge" min="0" max="59" required />
-            </div>
             <div class="update-field">
               <label>Purok *</label>
               <select id="uPurok" required>
@@ -553,54 +479,66 @@
               </select>
             </div>
             <div class="update-field">
-              <label>Complete Address *</label
-              ><input type="text" id="uAddress" required />
+              <label>Address / Location *</label>
+              <input type="text" id="uAddress" required />
             </div>
             <div class="update-field">
-              <label>Weight (kg) *</label
-              ><input type="number" id="uWeight" step="0.1" required />
+              <label>Mother / Caregiver *</label>
+              <input type="text" id="uMother" required />
             </div>
             <div class="update-field">
-              <label>Height (cm) *</label
-              ><input type="number" id="uHeight" step="0.1" required />
+              <label>Child's Full Name *</label>
+              <input type="text" id="uName" required />
             </div>
             <div class="update-field">
-              <label>Date of Monitoring</label><input type="date" id="uDate" />
+              <label>IP Group? *</label>
+              <select id="uIP" required>
+                <option value="NO">NO</option>
+                <option value="YES">YES</option>
+              </select>
+            </div>
+            <div class="update-field">
+              <label>Sex *</label>
+              <select id="uGender" required onchange="calcUpdateEOPT()">
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+            <div class="update-field">
+              <label>Date of Birth</label>
+              <input type="date" id="uDOB" onchange="calcUpdateEOPT()" />
+            </div>
+            <div class="update-field">
+              <label>Date Measured *</label>
+              <input type="date" id="uDate" required onchange="calcUpdateEOPT()" />
+            </div>
+            <div class="update-field">
+              <label>Weight (kg) *</label>
+              <input type="number" id="uWeight" step="0.1" required oninput="calcUpdateEOPT()" />
+            </div>
+            <div class="update-field">
+              <label>Height (cm) *</label>
+              <input type="number" id="uHeight" step="0.1" required oninput="calcUpdateEOPT()" />
+            </div>
+            <div class="update-field span2">
+              <label>Age in Months (0-59) <span class="hint">- auto if Date of Birth is filled</span></label>
+              <input type="number" id="uAge" min="0" max="59" oninput="calcUpdateEOPT()" />
             </div>
           </div>
           <div class="bmi-result" id="uBmiResultBox">
-            <div><span>BMI:</span><b id="uBmiValue">--</b></div>
-            <div>
-              <span>CLASSIFICATION (WFA):</span
-              ><b id="uBmiClass" class="badge">--</b>
-            </div>
+            <div><span>Age:</span><b id="uBmiValue">--</b></div>
+            <div><span>Classification:</span><b id="uBmiClass">--</b></div>
           </div>
           <div class="update-actions">
-            <button
-              type="button"
-              class="btn-secondary"
-              onclick="calculateUpdateBMI()"
-            >
-              Calculate BMI
-            </button>
-            <button
-              type="button"
-              class="btn-outline"
-              onclick="closeUpdateChildModal()"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btn-primary"
-              onclick="saveUpdateChild()"
-            >
-              💾 Update Record
-            </button>
+            <button type="button" class="btn-secondary" onclick="calcUpdateEOPT()">Compute</button>
+            <button type="button" class="btn-outline" onclick="closeUpdateChildModal()">Cancel</button>
+            <button type="submit" class="btn-primary">💾 Update Record</button>
           </div>
         </form>
       </div>
     </div>
+
     <script src="script.js"></script>
   </body>
 </html>
