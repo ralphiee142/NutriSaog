@@ -175,8 +175,8 @@
               <input type="number" id="cHeight" step="0.1" required placeholder="90.1" oninput="autoComputeEOPT()"/>
             </div>
             <div>
-              <label>12. Age in Months (Auto)</label>
-              <input type="number" id="cAge" readonly placeholder="Auto computed"/>
+              <label>12. Age in Months *</label>
+              <input type="number" id="cAge" min="0" max="59" required placeholder="Enter age in months (0-59)" oninput="autoComputeEOPT()"/>
             </div>
             <div>
               <label>13. Weight for Age Status (Auto)</label>
@@ -522,8 +522,8 @@
               <input type="number" id="uHeight" step="0.1" required oninput="calcUpdateEOPT()" />
             </div>
             <div class="update-field span2">
-              <label>Age in Months (0-59) <span class="hint">- auto if Date of Birth is filled</span></label>
-              <input type="number" id="uAge" min="0" max="59" oninput="calcUpdateEOPT()" />
+              <label>Age in Months (0-59) *</label>
+              <input type="number" id="uAge" min="0" max="59" required oninput="calcUpdateEOPT()" />
             </div>
           </div>
           <div class="bmi-result" id="uBmiResultBox">
