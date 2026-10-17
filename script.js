@@ -688,41 +688,24 @@ function resetForm(){
 window.resetForm = resetForm;
 
 // Render table with 15 columns
-
 function renderTable(){
   const tbody = document.querySelector('#recordsTable tbody');
   if(!tbody) return;
   const list = getChildren();
   const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
-  const filter = (document.getElementById('filterStatus')?.value || '').trim();
+  const filter = document.getElementById('filterStatus')?.value || '';
   let filtered = list.filter(c=>{
-    const txt = `${c.name||''} ${c.mother||''} ${c.purok||''} ${c.address||''} ${c.wfa||''} ${c.hfa||''} ${c.wfh||''}`.toLowerCase();
+    const txt = `${c.name} ${c.mother} ${c.purok} ${c.address} ${c.wfa} ${c.hfa} ${c.wfh}`.toLowerCase();
     if(search && !txt.includes(search)) return false;
-    if(filter){
-      const f = filter.toUpperCase();
-      // allow N matches all Normal types, but filter exact for others
-      if(f==='N'){
-        if(c.wfa==='N' || c.hfa==='N' || c.wfh==='N') return true;
-        else return false;
-      }
-      if(c.wfa===f || c.hfa===f || c.wfh===f) return true;
-      // also allow legacy names
-      if(f==='NORMAL' && (c.wfa==='N' || c.hfa==='N' || c.wfh==='N')) return true;
-      if(f==='UNDERWEIGHT' && c.wfa==='UW') return true;
-      if(f==='SEVERELY UNDERWEIGHT' && c.wfa==='SUW') return true;
-      if(f==='OVERWEIGHT' && (c.wfa==='OW' || c.wfh==='OW')) return true;
-      if(f==='STUNTED' && c.hfa==='S') return true;
-      if(f==='WASTED' && c.wfh==='W') return true;
-      return false;
-    }
+    if(filter && !(c.wfa===filter || c.hfa===filter || c.wfh===filter || c.status===filter)) return false;
     return true;
   });
   tbody.innerHTML='';
   filtered.forEach((c,i)=>{
     const tr=document.createElement('tr');
-    const wfaColor = c.wfa==='N' ? '#4caf50' : c.wfa==='UW' ? '#ff9800' : c.wfa==='SUW' ? '#f44336' : c.wfa==='OW' ? '#ff9800' : '#9e9e9e';
-    const hfaColor = c.hfa==='N' ? '#4caf50' : c.hfa==='S' ? '#ff9800' : c.hfa==='SS' ? '#f44336' : c.hfa==='T' ? '#8bc34a' : '#9e9e9e';
-    const wfhColor = c.wfh==='N' ? '#4caf50' : c.wfh==='W' ? '#ff9800' : c.wfh==='SW' ? '#f44336' : c.wfh==='OW' ? '#ffeb3b' : c.wfh==='O' ? '#d32f2f' : '#9e9e9e';
+    const wfaColor = c.wfa==='N' ? '#4caf50' : c.wfa==='UW' ? '#ff9800' : c.wfa==='SUW' ? '#f44336' : '#ffeb3b';
+    const hfaColor = c.hfa==='N' ? '#4caf50' : c.hfa==='S' ? '#ff9800' : c.hfa==='SS' ? '#f44336' : '#8bc34a';
+    const wfhColor = c.wfh==='N' ? '#4caf50' : c.wfh==='W' ? '#ff9800' : c.wfh==='SW' ? '#f44336' : '#ffeb3b';
     tr.innerHTML=`
       <td>${i+1}</td>
       <td>${c.purok||''}</td>
@@ -736,94 +719,41 @@ function renderTable(){
       <td>${c.weight||''}</td>
       <td>${c.height||''}</td>
       <td>${c.age!=null?c.age:''}</td>
-      <td><span class="badge" style="background:${wfaColor};color:${wfaColor==='#ffeb3b'?'#000':'#fff'};padding:4px 8px;border-radius:6px;font-weight:700">${c.wfa||'N'}</span></td>
+      <td><span class="badge" style="background:${wfaColor};color:${c.wfa==='N'?'#fff':'#000'};padding:4px 8px;border-radius:6px;font-weight:700">${c.wfa||'N'}</span></td>
       <td><span class="badge" style="background:${hfaColor};color:#fff;padding:4px 8px;border-radius:6px;font-weight:700">${c.hfa||'N'}</span></td>
-      <td><span class="badge" style="background:${wfhColor};color:${wfhColor==='#ffeb3b'?'#000':'#fff'};padding:4px 8px;border-radius:6px;font-weight:700">${c.wfh||'N'}</span></td>
+      <td><span class="badge" style="background:${wfhColor};color:#000;padding:4px 8px;border-radius:6px;font-weight:700">${c.wfh||'N'}</span></td>
       <td>
-        <button class="btn-outline" style="padding:4px 8px;font-size:11px" onclick="openUpdateModal('${c.id}')">✏️ Edit</button>
+        <button class="btn-outline" style="padding:4px 8px;font-size:11px" onclick="editChild('${c.id}')">✏️</button>
         <button class="btn-outline" style="padding:4px 8px;font-size:11px" onclick="deleteChild('${c.id}')">🗑️</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
   if(filtered.length===0){
-    tbody.innerHTML='<tr><td colspan="16" style="text-align:center;padding:20px;color:#888">No records found. Try All Status or clear search.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="16" style="text-align:center;padding:20px;color:#888">No records found. Add child information using 15 columns format.</td></tr>';
   }
 }
-
 window.renderTable = renderTable;
 
-
-function openUpdateModal(id){
+function editChild(id){
   const c = getChildren().find(x=>x.id===id);
   if(!c) return;
-  document.getElementById('uEditId').value=c.id;
-  document.getElementById('uPurok').value=c.purok||'Purok 1';
-  document.getElementById('uAddress').value=c.address||'';
-  document.getElementById('uMother').value=c.mother||'';
-  document.getElementById('uName').value=c.name||'';
-  document.getElementById('uIP').value=c.ip||'NO';
-  document.getElementById('uGender').value=c.gender||'';
-  document.getElementById('uDOB').value=c.dob||'';
-  document.getElementById('uDate').value=c.date||'';
-  document.getElementById('uWeight').value=c.weight||'';
-  document.getElementById('uHeight').value=c.height||'';
-  document.getElementById('uAge').value=c.age||'';
-  document.getElementById('uWFA').value=c.wfa||'';
-  document.getElementById('uHFA').value=c.hfa||'';
-  document.getElementById('uWFH').value=c.wfh||'';
-  calculateUpdateBMI();
-  document.getElementById('updateChildModal').classList.add('show');
+  document.querySelector('[data-view="add"]')?.click();
+  document.getElementById('editId').value=c.id;
+  document.getElementById('cPurok').value=c.purok||'';
+  document.getElementById('cAddress').value=c.address||'';
+  document.getElementById('cMother').value=c.mother||'';
+  document.getElementById('cName').value=c.name||'';
+  document.getElementById('cIP').value=c.ip||'NO';
+  document.getElementById('cGender').value=c.gender||'';
+  document.getElementById('cDOB').value=c.dob||'';
+  document.getElementById('cDate').value=c.date||'';
+  document.getElementById('cWeight').value=c.weight||'';
+  document.getElementById('cHeight').value=c.height||'';
+  autoComputeEOPT();
+  window.scrollTo(0,0);
 }
-function editChild(id){ openUpdateModal(id); }
-function closeUpdateChildModal(){
-  document.getElementById('updateChildModal').classList.remove('show');
-}
-function saveUpdateChild(){
-  const id = document.getElementById('uEditId').value;
-  if(!id) return;
-  let list=getChildren();
-  const idx=list.findIndex(x=>x.id===id);
-  if(idx<0) return;
-  const dob=document.getElementById('uDOB').value;
-  const measured=document.getElementById('uDate').value;
-  const age=computeAgeInMonths(dob, measured);
-  const w=parseFloat(document.getElementById('uWeight').value);
-  const h=parseFloat(document.getElementById('uHeight').value);
-  const sex=document.getElementById('uGender').value;
-  const wfa=classifyWFA(age,w,sex);
-  const hfa=classifyHFA(age,h,sex);
-  const wfh=classifyWFH(h,w,sex);
-  list[idx]={
-    ...list[idx],
-    purok: document.getElementById('uPurok').value,
-    address: document.getElementById('uAddress').value,
-    mother: document.getElementById('uMother').value,
-    name: document.getElementById('uName').value,
-    ip: document.getElementById('uIP').value,
-    gender: sex,
-    dob: dob,
-    date: measured,
-    weight: w,
-    height: h,
-    age: age,
-    wfa: wfa,
-    hfa: hfa,
-    wfh: wfh,
-    status: wfa
-  };
-  saveChildren(list);
-  closeUpdateChildModal();
-  renderTable();
-  renderPurokTable();
-  renderDashboard();
-  alert('Updated! WFA:'+wfa+' HFA:'+hfa+' WFH:'+wfh);
-}
-
 window.editChild = editChild;
-window.openUpdateModal=openUpdateModal;
-window.closeUpdateChildModal=closeUpdateChildModal;
-window.saveUpdateChild=saveUpdateChild;
 
 function deleteChild(id){
   if(!confirm('Delete this record?')) return;
@@ -835,48 +765,19 @@ function deleteChild(id){
 }
 window.deleteChild = deleteChild;
 
-
 function renderDashboard(){
   const list=getChildren();
   const total = list.length;
-  const normalWFA = list.filter(c=>c.wfa==='N').length;
+  const normal = list.filter(c=>c.wfa==='N').length;
   const under = list.filter(c=>c.wfa==='UW').length;
-  const severeUnder = list.filter(c=>c.wfa==='SUW').length;
+  const severe = list.filter(c=>c.wfa==='SUW').length;
   const over = list.filter(c=>c.wfa==='OW').length;
-  const normalHFA = list.filter(c=>c.hfa==='N').length;
-  const stunted = list.filter(c=>c.hfa==='S').length;
-  const severeStunted = list.filter(c=>c.hfa==='SS').length;
-  const tall = list.filter(c=>c.hfa==='T').length;
-  const normalWFH = list.filter(c=>c.wfh==='N').length;
-  const wasted = list.filter(c=>c.wfh==='W').length;
-  const severeWasted = list.filter(c=>c.wfh==='SW').length;
-  const obese = list.filter(c=>c.wfh==='O').length;
-
   if(document.getElementById('totalChildren')) document.getElementById('totalChildren').textContent=total;
-  if(document.getElementById('totalNormalWFA')) document.getElementById('totalNormalWFA').textContent=normalWFA;
-  if(document.getElementById('totalNormalHFA')) document.getElementById('totalNormalHFA').textContent='HFA Normal: '+normalHFA;
-  if(document.getElementById('totalNormalWFH')) document.getElementById('totalNormalWFH').textContent='WFH Normal: '+normalWFH;
+  if(document.getElementById('totalNormal')) document.getElementById('totalNormal').textContent=normal;
   if(document.getElementById('totalUnder')) document.getElementById('totalUnder').textContent=under;
-  if(document.getElementById('totalSevereUnder')) document.getElementById('totalSevereUnder').textContent=severeUnder;
+  if(document.getElementById('totalObese')) document.getElementById('totalObese').textContent=severe;
   if(document.getElementById('totalOver')) document.getElementById('totalOver').textContent=over;
-  if(document.getElementById('totalStunted')) document.getElementById('totalStunted').textContent=stunted;
-  if(document.getElementById('totalSevereStunted')) document.getElementById('totalSevereStunted').textContent=severeStunted;
-  if(document.getElementById('totalTall')) document.getElementById('totalTall').textContent=tall;
-  if(document.getElementById('totalWasted')) document.getElementById('totalWasted').textContent=wasted;
-  if(document.getElementById('totalSevereWasted')) document.getElementById('totalSevereWasted').textContent=severeWasted;
-  if(document.getElementById('totalObese')) document.getElementById('totalObese').textContent=obese;
-  // legacy ids
-  if(document.getElementById('totalNormal')) document.getElementById('totalNormal').textContent=normalWFA;
-  if(document.getElementById('totalObese') && !document.getElementById('totalSevereUnder')) document.getElementById('totalObese').textContent=severeUnder;
-
-  // chart
-  const canvas=document.getElementById('statusChart');
-  if(canvas && typeof Chart==='undefined'){
-    // simple text chart fallback
-    canvas.parentElement.innerHTML = `<div style="padding:16px"><b>Summary:</b><br>WFA: N=${normalWFA}, UW=${under}, SUW=${severeUnder}, OW=${over}<br>HFA: N=${normalHFA}, S=${stunted}, SS=${severeStunted}, T=${tall}<br>WFH: N=${normalWFH}, W=${wasted}, SW=${severeWasted}, OW=${list.filter(c=>c.wfh==='OW').length}, O=${obese}</div>`;
-  }
 }
-
 window.renderDashboard = renderDashboard;
 
 function initPurok(){ renderPurok(); }
@@ -909,158 +810,76 @@ function renderFeeding(){
 }
 window.renderFeeding=renderFeeding;
 
-
-window.exportAllToExcel=exportAllToExcel;
-);
-
-let currentPurokFilter = '';
-function initPurok(){
-  renderPurokTabs();
-  renderPurokTable();
-}
-function renderPurokTabs(){
-  const container=document.getElementById('purokTabs');
-  if(!container) return;
-  const puroks=['Purok 1','Purok 2','Purok 3','Purok 4','Purok 5','Purok 6'];
-  container.innerHTML='';
-  puroks.forEach(p=>{
-    const btn=document.createElement('button');
-    btn.className='btn-outline';
-    btn.style.margin='4px';
-    btn.style.padding='8px 14px';
-    btn.style.borderRadius='20px';
-    btn.textContent=p;
-    if(currentPurokFilter===p){ btn.style.background='#1a7a4c'; btn.style.color='#fff'; }
-    btn.onclick=()=>{
-      currentPurokFilter = currentPurokFilter===p ? '' : p;
-      renderPurokTabs();
-      renderPurokTable();
-    };
-    container.appendChild(btn);
-  });
-  const allBtn=document.createElement('button');
-  allBtn.className='btn-outline';
-  allBtn.textContent='All Purok';
-  allBtn.style.margin='4px';
-  allBtn.onclick=()=>{ currentPurokFilter=''; renderPurokTabs(); renderPurokTable(); };
-  container.appendChild(allBtn);
-}
-function renderPurokTable(){
-  const tbody=document.querySelector('#purokTable tbody');
-  if(!tbody) return;
-  let list=getChildren();
-  const search=(document.getElementById('purokSearch')?.value||'').toLowerCase();
-  if(currentPurokFilter){
-    list=list.filter(c=> (c.purok||'').toLowerCase().includes(currentPurokFilter.toLowerCase()));
-  }
-  if(search){
-    list=list.filter(c=> `${c.name||''} ${c.mother||''} ${c.purok||''} ${c.address||''}`.toLowerCase().includes(search));
-  }
-  const countEl=document.getElementById('purokCount');
-  if(countEl) countEl.textContent = `${list.length} record(s) ${currentPurokFilter? 'in '+currentPurokFilter : ''}`;
-  tbody.innerHTML='';
-  list.forEach((c,i)=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${i+1}</td>
-      <td>${c.purok||''}</td>
-      <td>${c.address||''}</td>
-      <td>${c.mother||''}</td>
-      <td><b>${c.name||''}</b></td>
-      <td>${c.ip||''}</td>
-      <td>${c.gender||''}</td>
-      <td>${c.dob||''}</td>
-      <td>${c.date||''}</td>
-      <td>${c.weight||''}</td>
-      <td>${c.height||''}</td>
-      <td>${c.age||''}</td>
-      <td>${c.wfa||''}</td>
-      <td>${c.hfa||''}</td>
-      <td>${c.wfh||''}</td>
-      <td><button class="btn-outline" onclick="openUpdateModal('${c.id}')">✏️</button> <button class="btn-outline" onclick="deleteChild('${c.id}')">🗑️</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-  if(list.length===0){
-    tbody.innerHTML='<tr><td colspan="16" style="text-align:center;padding:20px;color:#888">No records for this Purok. Select All Purok or add records with Purok 1-6.</td></tr>';
-  }
-}
-function exportPurokToExcel(){
-  let list=getChildren();
-  if(currentPurokFilter) list=list.filter(c=> (c.purok||'').toLowerCase().includes(currentPurokFilter.toLowerCase()));
-  let csv='No.,Purok,Address,Mother,Child,IP,Sex,DOB,Date Measured,Weight,Height,Age Months,WFA,HFA,WFH\n';
-  list.forEach((c,i)=>{ csv+=`${i+1},"${c.purok}","${c.address}","${c.mother}","${c.name}","${c.ip}","${c.gender}","${c.dob}","${c.date}",${c.weight},${c.height},${c.age},${c.wfa},${c.hfa},${c.wfh}\n`; });
-  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`Purok-${currentPurokFilter||'All'}-eOPT.csv`; a.click();
-}
-function printPurokReport(){
-  const original = document.body.innerHTML;
-  const table = document.getElementById('purokTable').outerHTML;
-  const header = `<h2>Purok Monitoring - ${currentPurokFilter||'All Purok'} - Brgy SAOG</h2><p>Date: ${new Date().toLocaleDateString()}</p>`;
-  const win = window.open('', '_blank');
-  win.document.write(`<html><head><title>Purok Report</title><style>table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:4px;font-size:11px}th{background:#6da8d1;color:#fff}</style></head><body>${header}${table}</body></html>`);
-  win.document.close();
-  win.print();
-}
-
 function exportAllToExcel(){
   const list=getChildren();
-  if(list.length===0){ alert('No records to export'); return; }
-  let csv='No.,Purok,Address or Location,Name of Mother/Caregiver,Full Name of Child,IP Group,Sex,Date of Birth,Date Measured,Weight (kg),Height (cm),Age in Months,Weight for Age Status,Height for Age Status,Weight for Length/Height Status\n';
+  let csv='No.,Purok,Address,Mother,Child,IP Group,Sex,DOB,Date Measured,Weight,Height,Age Months,WFA,HFA,WFH\\n';
   list.forEach((c,i)=>{
-    csv+=`${i+1},"${(c.purok||'').replace(/"/g,'""')}","${(c.address||'').replace(/"/g,'""')}","${(c.mother||'').replace(/"/g,'""')}","${(c.name||'').replace(/"/g,'""')}","${c.ip||''}","${c.gender||''}","${c.dob||''}","${c.date||''}",${c.weight||''},${c.height||''},${c.age||''},${c.wfa||''},${c.hfa||''},${c.wfh||''}\n`;
+    csv+=`${i+1},"${c.purok}","${c.address}","${c.mother}","${c.name}","${c.ip}","${c.gender}","${c.dob}","${c.date}",${c.weight},${c.height},${c.age},${c.wfa},${c.hfa},${c.wfh}\\n`;
   });
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;
-  a.download=`e-OPT-PLUS-SAOG-15columns-${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  a.href=url; a.download='e-OPT-PLUS-SAOG-15columns.csv'; a.click();
 }
-function printAllRecords(){
-  const list=getChildren();
-  if(list.length===0){ alert('No records to print'); return; }
-  const table = document.getElementById('recordsTable').outerHTML;
-  const win = window.open('', '_blank');
-  win.document.write(`
-    <html>
-    <head>
-      <title>All Records - e-OPT PLUS 15 Columns - Brgy SAOG</title>
-      <style>
-        body{font-family:Arial,sans-serif;padding:20px}
-        h2{margin:0}
-        small{color:#555}
-        table{border-collapse:collapse;width:100%;margin-top:12px}
-        th,td{border:1px solid #333;padding:4px 6px;font-size:10px;text-align:center}
-        th{background:#6da8d1;color:#fff}
-        .legend{font-size:10px;margin-top:10px}
-        @media print{ @page{size:landscape} }
-      </style>
-    </head>
-    <body>
-      <h2>Community Level e-OPT PLUS Tool</h2>
-      <p><b>Barangay:</b> SAOG | <b>Municipality:</b> MARILAO | <b>Province:</b> Bulacan | <b>Region:</b> III | <b>Date:</b> 05/05/2026 | <b>Year:</b> 2026</p>
-      <p>Total Records: ${list.length}</p>
-      ${table}
-      <div class="legend">
-        <b>Legend:</b> WFA: N=Normal, UW=Underweight, SUW=Severely Underweight, OW=Overweight | HFA: N=Normal, S=Stunted, SS=Severely Stunted, T=Tall | WFH: N=Normal, W=Wasted, SW=Severely Wasted, OW=Overweight, O=Obese<br>
-        <b>Source:</b> WHO Child Growth Standards 2006 adopted by NNC (nnc.gov.ph) | Weight for Age & Height for Age from e-OPT Tool | Weight-for-Length/Height from WHO https://www.who.int/tools/child-growth-standards/standards/weight-for-length-height
-      </div>
-    </body>
-    </html>
-  `);
-  win.document.close();
-  setTimeout(()=>win.print(), 500);
-}
+window.exportAllToExcel=exportAllToExcel;
+function printAllRecords(){ window.print(); }
+window.printAllRecords=printAllRecords;
 
+// Init
 document.addEventListener('DOMContentLoaded',()=>{
   renderDashboard();
   renderTable();
-  initPurok();
   const s=document.getElementById('searchInput');
   if(s) s.addEventListener('input', renderTable);
   const f=document.getElementById('filterStatus');
   if(f) f.addEventListener('change', renderTable);
 });
+
+
+// ===== FIX SIDEBAR NAVIGATION - ensure it works even after patches =====
+(function fixSidebar(){
+  function attachSidebar(){
+    const btns = document.querySelectorAll('.side-btn');
+    if(!btns.length) return;
+    btns.forEach(b=>{
+      // remove old listeners by cloning
+      const newB = b.cloneNode(true);
+      b.parentNode.replaceChild(newB, b);
+    });
+    document.querySelectorAll('.side-btn').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        document.querySelectorAll('.side-btn').forEach(x=>x.classList.remove('active'));
+        document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+        b.classList.add('active');
+        const viewId = 'view-' + b.dataset.view;
+        const view = document.getElementById(viewId);
+        if(view) view.classList.add('active');
+        else console.warn('View not found', viewId);
+        if(b.dataset.view==='dashboard' && typeof renderDashboard==='function') renderDashboard();
+        if(b.dataset.view==='records' && typeof renderTable==='function') renderTable();
+        if(b.dataset.view==='purok' && typeof initPurok==='function') initPurok();
+        if(b.dataset.view==='feeding' && typeof renderFeeding==='function') renderFeeding();
+        if(b.dataset.view==='add' && typeof autoComputeEOPT==='function') setTimeout(autoComputeEOPT, 100);
+      });
+    });
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', attachSidebar);
+  } else {
+    attachSidebar();
+  }
+  // also re-attach after 500ms to override any other init
+  setTimeout(attachSidebar, 500);
+})();
+
+// Fallback dashboard update for old HTML (5 cards)
+(function patchOldDashboard(){
+  const origRender = window.renderDashboard;
+  window.renderDashboard = function(){
+    if(typeof origRender==='function') try{ origRender(); }catch(e){}
+    // update legacy ids if new ones not present
+    const list = typeof getChildren==='function' ? getChildren() : [];
+    const total = list.length;
+    if(document.getElementById('totalChildren')) document.getElementById('totalChildren').textContent = total;
+  };
+})();
