@@ -537,8 +537,8 @@ function autoComputeEOPT(){
   const w = parseFloat(document.getElementById('cWeight')?.value);
   const h = parseFloat(document.getElementById('cHeight')?.value);
   const sex = document.getElementById('cGender')?.value;
-  let age = computeAgeInMonths(dob, measured);
-  if(document.getElementById('cAge')) document.getElementById('cAge').value = age!=null? age : '';
+  let age = parseInt(document.getElementById('cAge')?.value, 10); // manual input
+  if(isNaN(age)) age = null;
   let wfa = age!=null && !isNaN(w) ? classifyWFA(age,w,sex) : '';
   let hfa = age!=null && !isNaN(h) ? classifyHFA(age,h,sex) : '';
   let wfh = !isNaN(w) && !isNaN(h) ? classifyWFH(h,w,sex) : '';
@@ -678,8 +678,9 @@ function renderStatusChart(s) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 30 } },
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      scales: { y: { beginAtZero: true, grace: "15%", ticks: { precision: 0 } } },
     },
     plugins: [{
       id: "vals",
@@ -702,10 +703,10 @@ if (childForm) {
   childForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const dob = byId("cDOB").value, measured = byId("cDate").value;
-    if (dob > measured) return alert("Date of Birth cannot be later than Date Measured.");
-    const age = computeAgeInMonths(dob, measured);
-    if (age == null) return alert("Please enter a valid Date of Birth and Date Measured.");
-    if (age > 59) return alert("Age is " + age + " months. Coverage is only 0-59 months.");
+    if (dob && measured && dob > measured) return alert("Date of Birth cannot be later than Date Measured.");
+    const age = parseInt(byId("cAge").value, 10); // manual input
+    if (isNaN(age)) return alert("Please enter the Age in Months.");
+    if (age < 0 || age > 59) return alert("Age must be 0-59 months (coverage).");
     const w = parseFloat(byId("cWeight").value), h = parseFloat(byId("cHeight").value);
     const sex = byId("cGender").value;
     const wfa = classifyWFA(age, w, sex), hfa = classifyHFA(age, h, sex), wfh = classifyWFH(h, w, sex);
@@ -820,21 +821,115 @@ function downloadCSV(filename, headers, rows) {
   a.click();
   a.remove();
 }
-function printTable(title, sub, headers, rows, footer) {
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
-  <style>@page{size:A4 landscape;margin:10mm}
-  body{font-family:Arial,sans-serif;font-size:10px;color:#111}
-  h2{text-align:center;margin:0 0 4px;font-size:16px}
-  p{text-align:center;margin:0 0 10px;font-size:11px}
-  table{width:100%;border-collapse:collapse}
-  th,td{border:1px solid #444;padding:3px 5px;text-align:left}
-  th{background:#6da8d1;color:#fff}
-  tr{page-break-inside:avoid}
-  .f{margin-top:10px;font-size:9px;color:#444}</style></head><body>
-  <h2>${esc(title)}</h2><p>${esc(sub)}</p>
-  <table><thead><tr>${headers.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
-  <tbody>${rows.map((r) => `<tr>${r.map((v) => `<td>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>
-  <div class="f">${footer || ""}</div></body></html>`;
+const EOPT_DATE = "05/05/2026"; // petsa ng e-OPT tool sa header ng print - palitan dito kung magbago
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fmtDate(s) {
+  const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${MONTHS[+m[2] - 1]}-${m[3]}-${m[1]}` : s || "";
+}
+function num1(v) { const n = parseFloat(v); return isNaN(n) ? "" : n.toFixed(1); }
+
+// Print in the official Community Level e-OPT PLUS Tool layout
+function printEOPT(list, opts) {
+  opts = opts || {};
+  const year = EOPT_DATE.slice(-4);
+  const body = list.map((c, i) => {
+    const addr = [c.purok ? c.purok.toUpperCase() : "", c.address ? c.address.toUpperCase() : ""].filter(Boolean).join("- ");
+    return `<tr>
+      <td class="ctr">${i + 1}</td>
+      <td>${esc(addr)}</td>
+      <td>${esc((c.mother || "").toUpperCase())}</td>
+      <td>${esc((c.name || "").toUpperCase())}</td>
+      <td class="ctr">${esc(c.ip || "NO")}</td>
+      <td class="ctr">${sexLetter(c.gender)}</td>
+      <td class="ctr">${esc(fmtDate(c.dob))}</td>
+      <td class="ctr">${esc(fmtDate(c.date))}</td>
+      <td class="ctr">${num1(c.weight)}</td>
+      <td class="ctr">${num1(c.height)}</td>
+      <td class="ctr b">${c.age != null ? esc(c.age) : ""}</td>
+      <td class="s s-${esc(c.wfa)}">${esc(c.wfa)}</td>
+      <td class="s s-${esc(c.hfa)}">${esc(c.hfa)}</td>
+      <td class="s s-${esc(c.wfh)}">${esc(c.wfh)}</td>
+    </tr>`;
+  }).join("");
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>e-OPT PLUS - Barangay Saog</title>
+<style>
+  @page { size: A4 landscape; margin: 8mm; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
+  body { font-family: Calibri, Arial, sans-serif; font-size: 9pt; color: #111; margin: 0; }
+  table { border-collapse: collapse; width: 100%; }
+  .top { background: #dde2a5; }
+  .top td { vertical-align: middle; padding: 6px 10px; }
+  .top .tf { width: 17%; }
+  .top .red { background: #b9455a; color: #fff; font-weight: 700; font-size: 8pt; padding: 3px 8px; display: inline-block; }
+  .top .bg { font-weight: 700; margin-top: 4px; font-size: 10pt; }
+  .top .mid { text-align: center; }
+  .top .t { font-size: 17pt; font-weight: 700; }
+  .top .s2 { font-size: 10.5pt; font-weight: 700; margin-top: 3px; }
+  .top .rt { width: 24%; text-align: right; font-size: 9.5pt; line-height: 1.6; }
+  .band { background: #3b3b3b; height: 12px; }
+  .loc td { padding: 6px 10px; font-size: 10.5pt; text-align: center; }
+  .note { text-align: center; font-weight: 700; font-size: 10.5pt; margin: 2px 0 4px; }
+  .grid th, .grid td { border: 1px solid #222; }
+  .grid th { color: #fff; font-weight: 700; text-align: center; padding: 4px 3px; font-size: 8pt; line-height: 1.25; }
+  .grid th span { font-weight: 400; font-size: 6.5pt; opacity: .85; }
+  .blue { background: #5ba3d0; }
+  .yellow { background: #f5c518; color: #5a3b00 !important; font-size: 6.5pt !important; }
+  .olive { background: #9b8a3e; font-size: 6.5pt !important; }
+  .brown { background: #3f342b; }
+  .olive2 { background: #8a7a3a; }
+  .grid td { padding: 3px 5px; height: 17px; background: #fff; }
+  .ctr { text-align: center; }
+  .b { font-weight: 700; }
+  .s { text-align: center; font-weight: 700; background: #78b32b !important; }
+  .s-UW, .s-S, .s-W { background: #f4a300 !important; }
+  .s-SUW, .s-SS, .s-SW { background: #e0393e !important; color: #fff; }
+  .s-OW { background: #ffe066 !important; }
+  .s-T { background: #9ccc65 !important; }
+  .s-O { background: #bf360c !important; color: #fff; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  .legend { margin-top: 8px; font-size: 7.5pt; color: #333; }
+</style></head><body>
+<table class="top"><tr>
+  <td class="tf"><span class="red">TOOL IS FOR:</span><div class="bg">Barangay</div></td>
+  <td class="mid"><div class="t">Community Level e-OPT PLUS Tool</div>
+    <div class="s2">WEIGHT FOR AGE, HEIGHT FOR AGE, &amp; WEIGHT FOR LENGTH/HEIGHT STATUS</div></td>
+  <td class="rt">Date: <b>${EOPT_DATE}</b> &nbsp;&nbsp;&nbsp; Year: <b>${year}</b><br>Region: <b>III Central Luzon</b></td>
+</tr></table>
+<div class="band"></div>
+<table class="loc"><tr>
+  <td>Barangay: <b>SAOG</b></td><td>Municipality: <b>MARILAO</b></td><td>Province: <b>Bulacan</b></td>
+</tr></table>
+${opts.note ? `<div class="note">${esc(opts.note)}</div>` : ""}
+<table class="grid">
+<thead>
+<tr>
+  <th rowspan="2" class="blue" style="width:3%">Seq.</th>
+  <th rowspan="2" class="blue" style="width:17%">Address or Location<br>of Child's Residence<br><span>(Purok, Block #, Area or Location in the barangay)</span></th>
+  <th rowspan="2" class="blue" style="width:13%">Name of Mother<br>or Caregiver<br><span>(Surname, First Name)</span></th>
+  <th rowspan="2" class="blue" style="width:15%">Full Name of Child<br><span>(Surname, First Name)</span></th>
+  <th rowspan="2" class="blue" style="width:5%">Belongs to IP<br>Group?<br><span>YES/NO</span></th>
+  <th rowspan="2" class="blue" style="width:3.5%">Sex<br><span>M/F</span></th>
+  <th colspan="2" class="yellow">IMPORTANT INFO ON DATE FORMAT<br>ENTRY: PLS READ</th>
+  <th rowspan="2" class="blue" style="width:4.5%">Weight<br><span>(kg)</span></th>
+  <th rowspan="2" class="blue" style="width:4.5%">Height<br><span>(cm)</span></th>
+  <th colspan="4" class="olive">NO DATA ENTRY REQUIRED<br>RESULTS WILL BE AUTO-FILLED</th>
+</tr>
+<tr>
+  <th class="blue" style="width:7%">Date of Birth</th>
+  <th class="blue" style="width:7%">Date Measured</th>
+  <th class="brown" style="width:5%">Age in<br>Months</th>
+  <th class="olive2" style="width:6%">Weight for Age<br>Status</th>
+  <th class="olive2" style="width:6%">Height for Age<br>Status</th>
+  <th class="olive2" style="width:6%">Weight for Lt/Ht<br>Status</th>
+</tr>
+</thead>
+<tbody>${body}</tbody></table>
+<div class="legend">${LEGEND}</div>
+</body></html>`;
+
   const fr = document.createElement("iframe");
   fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(fr);
@@ -844,7 +939,7 @@ function printTable(title, sub, headers, rows, footer) {
     fr.contentWindow.focus();
     fr.contentWindow.print();
     setTimeout(() => fr.remove(), 2000);
-  }, 300);
+  }, 400);
 }
 const TODAY = () => new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
 const LEGEND = "<b>Legend:</b> WFA: N=Normal, UW=Underweight, SUW=Severely Underweight, OW=Overweight | HFA: N=Normal, S=Stunted, SS=Severely Stunted, T=Tall | WFL/H: N=Normal, W=Wasted, SW=Severely Wasted, OW=Overweight, O=Obese";
@@ -857,9 +952,7 @@ function exportAllToExcel() {
 function printAllRecords() {
   const list = getFilteredRecords();
   if (!list.length) return alert("Walang records na i-print.");
-  printTable("e-OPT PLUS - All Records (Barangay Saog)",
-    "Barangay: SAOG | Municipality: MARILAO | Province: Bulacan | Region: III Central Luzon | Printed: " + TODAY(),
-    REC_HEAD, list.map(recRow), LEGEND);
+  printEOPT(list);
 }
 window.exportAllToExcel = exportAllToExcel;
 window.printAllRecords = printAllRecords;
@@ -920,8 +1013,7 @@ function exportPurokToExcel() {
 function printPurokReport() {
   const list = purokList();
   if (!list.length) return alert("Walang records sa " + activePurok + ".");
-  printTable("Purok Monitoring - " + activePurok + " (Barangay Saog)",
-    "Coverage: 0-59 Months | Printed: " + TODAY(), PUROK_HEAD, list.map(purokRow), LEGEND);
+  printEOPT(list, { note: activePurok.toUpperCase() });
 }
 window.renderPurok = renderPurok;
 window.initPurok = initPurok;
@@ -966,9 +1058,7 @@ function exportFeedingToExcel() {
 function printFeedingReport() {
   const list = feedingList();
   if (!list.length) return alert("Walang records na i-print.");
-  printTable("Barangay Saog - Feeding Program Priority List",
-    "Office Hours: 7:30AM - 4:00PM | Coverage: 0-59 Months | Generated: " + TODAY(),
-    FEED_HEAD, list.map(feedRow), "WFA: UW=Underweight, SUW=Severely Underweight");
+  printEOPT(list, { note: "FEEDING PROGRAM PRIORITY LIST - UNDERWEIGHT / SEVERELY UNDERWEIGHT" });
 }
 window.renderFeeding = renderFeeding;
 
@@ -997,9 +1087,8 @@ function closeUpdateChildModal() { byId("updateChildModal").classList.remove("sh
 function calcUpdateEOPT() {
   const dob = byId("uDOB").value, meas = byId("uDate").value, sex = byId("uGender").value;
   const w = parseFloat(byId("uWeight").value), h = parseFloat(byId("uHeight").value);
-  let age = computeAgeInMonths(dob, meas);
-  if (age != null) byId("uAge").value = age;
-  else { age = parseInt(byId("uAge").value, 10); if (isNaN(age)) age = null; }
+  let age = parseInt(byId("uAge").value, 10); // manual input
+  if (isNaN(age)) age = null;
   const wfa = age != null && !isNaN(w) ? classifyWFA(age, w, sex) : "";
   const hfa = age != null && !isNaN(h) ? classifyHFA(age, h, sex) : "";
   const wfh = !isNaN(w) && !isNaN(h) ? classifyWFH(h, w, sex) : "";
@@ -1012,7 +1101,7 @@ function calcUpdateEOPT() {
 function saveUpdateChild(e) {
   if (e) e.preventDefault();
   const r = calcUpdateEOPT();
-  if (r.age == null) return alert("Enter Date of Birth + Date Measured, or the Age in months.");
+  if (r.age == null) return alert("Please enter the Age in Months.");
   if (r.age < 0 || r.age > 59) return alert("Age must be 0-59 months.");
   const list = getChildren();
   const idx = list.findIndex((x) => x.id === byId("uEditId").value);
