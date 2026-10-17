@@ -881,3 +881,11 @@ canvas { width: 100% !important; height: auto !important; }
 .eopt-meta span { background: #f0f6f2; padding: 4px 8px; border-radius: 6px; }
 .eopt-grid { grid-template-columns: 1fr 1fr !important; }
 .eopt-grid .full { grid-column: 1 / -1; }
+
+/* Center table content */
+#recordsTable th, #recordsTable td,
+#purokTable th, #purokTable td,
+#feedingTable th, #feedingTable td {
+  text-align: center;
+  vertical-align: middle;
+}
