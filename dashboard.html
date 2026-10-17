@@ -50,9 +50,10 @@
         </div>
       </aside>
       <main class="content">
+        
         <section id="view-dashboard" class="view active">
           <h2>Dashboard Overview</h2>
-          <div class="cards">
+          <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
             <div class="card card-total">
               <div class="card-flex">
                 <div>
@@ -62,27 +63,56 @@
                 <div class="card-icon">👶</div>
               </div>
             </div>
-            <div class="card normal">
-              <h3 id="totalNormal">0</h3>
-              <p>Normal</p>
+            <div class="card normal" style="border-left:5px solid #4caf50">
+              <h3 id="totalNormalWFA">0</h3>
+              <p>Normal (WFA)</p>
+              <small id="totalNormalHFA">HFA Normal: 0</small><br>
+              <small id="totalNormalWFH">WFH Normal: 0</small>
             </div>
-            <div class="card under">
+            <div class="card under" style="border-left:5px solid #ff9800">
               <h3 id="totalUnder">0</h3>
-              <p>Underweight</p>
+              <p>Underweight (UW)</p>
+              <small>Weight for Age</small>
             </div>
-            <div class="card severely">
-              <h3 id="totalObese">0</h3>
-              <p>Severely Underweight</p>
+            <div class="card severely" style="border-left:5px solid #f44336">
+              <h3 id="totalSevereUnder">0</h3>
+              <p>Severely Underweight (SUW)</p>
             </div>
-            <div class="card over">
+            <div class="card over" style="border-left:5px solid #ffeb3b">
               <h3 id="totalOver">0</h3>
-              <p>Overweight</p>
+              <p>Overweight (OW)</p>
+            </div>
+            <div class="card" style="border-left:5px solid #ff9800;background:linear-gradient(135deg,#fff3e0,#ffe0b2)">
+              <h3 id="totalStunted">0</h3>
+              <p>Stunted (S)</p>
+              <small>Height for Age</small>
+            </div>
+            <div class="card" style="border-left:5px solid #f44336;background:linear-gradient(135deg,#ffebee,#ffcdd2)">
+              <h3 id="totalSevereStunted">0</h3>
+              <p>Severely Stunted (SS)</p>
+            </div>
+            <div class="card" style="border-left:5px solid #8bc34a">
+              <h3 id="totalTall">0</h3>
+              <p>Tall (T)</p>
+            </div>
+            <div class="card" style="border-left:5px solid #ff9800;background:linear-gradient(135deg,#fff8e1,#ffecb3)">
+              <h3 id="totalWasted">0</h3>
+              <p>Wasted (W)</p>
+              <small>Weight for Length/Height</small>
+            </div>
+            <div class="card" style="border-left:5px solid #d32f2f;background:linear-gradient(135deg,#ffebee,#ef9a9a)">
+              <h3 id="totalSevereWasted">0</h3>
+              <p>Severely Wasted (SW)</p>
+            </div>
+            <div class="card" style="border-left:5px solid #ff5722">
+              <h3 id="totalObese">0</h3>
+              <p>Obese (O)</p>
             </div>
           </div>
           <div class="chart-box">
             <div class="chart-header">
-              <h4 class="chart-title">Nutritional Status Distribution</h4>
-              <small class="chart-sub">0-59 months monitoring</small>
+              <h4 class="chart-title">Nutritional Status Distribution (WFA / HFA / WFH)</h4>
+              <small class="chart-sub">0-59 months monitoring - e-OPT PLUS 15 Columns</small>
             </div>
             <div class="chart-canvas-wrap">
               <canvas id="statusChart" class="chart-canvas"></canvas>
@@ -113,17 +143,17 @@
               <label>2. Purok *</label>
               <select id="cPurok" required>
                 <option value="">Select Purok</option>
-                <option>PUROK 1- PUNONG TULAY</option>
-                <option>PUROK 2- GITNA</option>
-                <option>PUROK 3- BAHAY PARE</option>
-                <option>PUROK 4- LOMA</option>
-                <option>PUROK 5- IBABA</option>
-                <option>PUROK 6- ITAAS</option>
+                <option>Purok 1</option>
+                <option>Purok 2</option>
+                <option>Purok 3</option>
+                <option>Purok 4</option>
+                <option>Purok 5</option>
+                <option>Purok 6</option>
               </select>
             </div>
             <div class="full">
               <label>3. Address or Location of Child's Residence (Purok, Block #, Area) *</label>
-              <input type="text" id="cAddress" required placeholder="e.g. PUROK 1- PUNONG TULAY, Block 2, Saog"/>
+              <input type="text" id="cAddress" required placeholder="e.g. Purok 1, Block 2, Saog"/>
             </div>
             <div>
               <label>4. Name of Mother or Caregiver *</label>
@@ -246,37 +276,37 @@
             <b>Source:</b> WHO Child Growth Standards 2006 adopted by NNC (www.nnc.gov.ph) | Weight for Age & Height for Age tables from e-OPT PLUS Tool | Weight-for-Length/Height from WHO https://www.who.int/tools/child-growth-standards/standards/weight-for-length-height
           </div>
         </section>
+        
         <section id="view-purok" class="view">
-          <h2>Purok Monitoring</h2>
+          <h2>Purok Monitoring - Purok 1 to Purok 6 Only</h2>
           <div class="purok-header">
-            <div class="purok-tabs" id="purokTabs"></div>
-            <input
-              type="text"
-              id="purokSearch"
-              placeholder="🔍 Search in this purok..."
-              oninput="renderPurok()"
-              class="purok-search"
-            />
+            <div class="purok-tabs" id="purokTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+            <input type="text" id="purokSearch" placeholder="🔍 Search in this purok..." oninput="renderPurokTable()" class="purok-search" style="padding:10px;border-radius:10px;border:1.5px solid #ddd;min-width:260px"/>
           </div>
-          <div class="cards" id="purokStats"></div>
-          <div class="export-actions">
-            <button class="btn-outline" onclick="exportPurokToExcel()">
-              📊 Export Purok Excel
-            </button>
-            <button class="btn-outline" onclick="printPurokReport()">
-              🖨️ Print Purok Report
-            </button>
+          <div style="margin-bottom:12px">
+            <button class="btn-outline" onclick="exportPurokToExcel()">📊 Export Purok Excel</button>
+            <button class="btn-outline" onclick="printPurokReport()">🖨️ Print Purok Report</button>
+            <span id="purokCount" style="margin-left:12px;font-size:13px;color:#666"></span>
           </div>
-          <div class="table-wrap">
-            <table id="purokTable">
+          <div class="table-wrap" style="overflow:auto">
+            <table id="purokTable" style="min-width:1800px">
               <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Gender</th>
-                  <th>Age</th>
-                  <th>Address</th>
-                  <th>BMI</th>
-                  <th>Status</th>
+                <tr style="background:#6da8d1;color:#fff">
+                  <th>1 No.</th>
+                  <th>2 Purok</th>
+                  <th>3 Address</th>
+                  <th>4 Mother</th>
+                  <th>5 Child</th>
+                  <th>6 IP</th>
+                  <th>7 Sex</th>
+                  <th>8 DOB</th>
+                  <th>9 Date Measured</th>
+                  <th>10 Wt</th>
+                  <th>11 Ht</th>
+                  <th>12 Age M</th>
+                  <th>13 WFA</th>
+                  <th>14 HFA</th>
+                  <th>15 WFH</th>
                   <th>Action</th>
                 </tr>
               </thead>
