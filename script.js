@@ -1225,6 +1225,11 @@ function setDbStatus(ok, msg) {
   el.textContent = msg;
   el.title = msg;
 }
+// Supabase "status" column only accepts Normal / Underweight / Overweight (check constraint).
+// Exact result (N, UW, SUW, OW) is kept in the "wfa" column.
+function legacyStatus(wfa) {
+  return wfa === "UW" || wfa === "SUW" ? "Underweight" : wfa === "OW" ? "Overweight" : "Normal";
+}
 function childToRow(c) {
   const w = parseFloat(c.weight), h = parseFloat(c.height);
   return {
@@ -1237,7 +1242,7 @@ function childToRow(c) {
     weight: isNaN(w) ? null : w,
     height: isNaN(h) ? null : h,
     bmi: !isNaN(w) && !isNaN(h) && h > 0 ? Math.round((w / Math.pow(h / 100, 2)) * 100) / 100 : null,
-    status: c.wfa || "N",
+    status: legacyStatus(c.wfa),
     mother: c.mother || "",
     ip: c.ip || "NO",
     dob: c.dob || null,
