@@ -889,3 +889,62 @@ canvas { width: 100% !important; height: auto !important; }
   text-align: center;
   vertical-align: middle;
 }
+/* ===== Dashboard design ===== */
+.dash-hero { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+.dash-hero p { font-size: 12px; opacity: .6; }
+.dash-date { background: #fff; border: 1px solid #eef1ef; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-weight: 600; color: var(--green-dark); box-shadow: var(--card-shadow); }
+
+.dash-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin: 14px 0; }
+.dstat { position: relative; overflow: hidden; border-radius: 18px; padding: 20px 22px; color: #fff; box-shadow: 0 6px 18px rgba(0,0,0,.12); transition: transform .25s; }
+.dstat:hover { transform: translateY(-3px); }
+.dstat h3 { font-size: 34px; font-weight: 800; line-height: 1; }
+.dstat p { font-size: 12px; opacity: .92; margin-top: 8px; font-weight: 500; }
+.dstat .di { position: absolute; right: 14px; top: 12px; font-size: 38px; opacity: .28; }
+.dstat.s1 { background: linear-gradient(135deg, #0f5d36, #2e9b5a); }
+.dstat.s2 { background: linear-gradient(135deg, #1565c0, #42a5f5); }
+.dstat.s3 { background: linear-gradient(135deg, #c2185b, #f06292); }
+.dstat.s4 { background: linear-gradient(135deg, #6a1b9a, #ab47bc); }
+.dstat.s5 { background: linear-gradient(135deg, #ef6c00, #ffb74d); }
+.dstat.s6 { background: linear-gradient(135deg, #00796b, #4db6ac); }
+
+.dash-grid { display: grid; grid-template-columns: 1.2fr 1fr .9fr; gap: 14px; margin-bottom: 14px; }
+.dash-grid2 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+.dash-panel { background: #fff; border: 1px solid #eef1ef; border-radius: 18px; padding: 18px 20px; box-shadow: var(--card-shadow); }
+.dash-panel h4 { font-size: 14px; font-weight: 700; color: #111; }
+.dash-panel .sub { font-size: 11px; opacity: .55; margin: 2px 0 14px; }
+
+/* children per purok */
+.pbar { display: grid; grid-template-columns: 62px 1fr 30px 38px; gap: 10px; align-items: center; margin: 13px 0; font-size: 12.5px; }
+.pbar .pn { font-weight: 600; color: #444; }
+.pbar .pt { background: #eef3ef; border-radius: 10px; height: 14px; overflow: hidden; }
+.pbar .pt > div { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #1a7a4c, #4cc283); }
+.pbar small { opacity: .55; text-align: right; }
+
+/* age groups */
+.abars { display: flex; align-items: flex-end; gap: 12px; height: 230px; padding-top: 6px; }
+.acol { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%; }
+.acol b { font-size: 14px; }
+.abar { width: 100%; max-width: 56px; min-height: 4px; border-radius: 10px 10px 4px 4px; background: linear-gradient(180deg, #42a5f5, #1565c0); }
+.acol span { font-size: 10.5px; opacity: .65; text-align: center; line-height: 1.2; }
+
+/* sex donut */
+.donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 6px; }
+.donut { width: 160px; height: 160px; border-radius: 50%; display: grid; place-items: center; background: #dfe6e2; }
+.donut-in { width: 102px; height: 102px; border-radius: 50%; background: #fff; display: grid; place-content: center; text-align: center; }
+.donut-in b { font-size: 28px; line-height: 1; }
+.donut-in small { font-size: 10px; opacity: .6; }
+.legend { display: flex; gap: 18px; font-size: 12.5px; flex-wrap: wrap; justify-content: center; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+
+/* recent + quick actions */
+.dash-table { min-width: 0 !important; width: 100%; font-size: 12.5px; }
+.dash-table th { position: static; background: #f8faf8; }
+.dash-table th, .dash-table td { text-align: left; padding: 10px 12px; }
+.quick-btns { display: grid; gap: 10px; }
+.quick-btns button { width: 100%; text-align: left; padding: 13px 16px; border-radius: 12px; border: 1.6px solid #e3e8e5; background: #fafcfb; font-weight: 600; font-size: 13px; cursor: pointer; transition: all .2s; }
+.quick-btns button:hover { border-color: var(--green); background: var(--green-light); transform: translateX(3px); }
+.dash-tip { margin-top: 14px; background: #f0f8f3; border: 1px solid #c8e6c9; border-radius: 12px; padding: 12px 14px; font-size: 11.5px; line-height: 1.6; }
+
+@media (max-width: 1100px) {
+  .dash-grid, .dash-grid2 { grid-template-columns: 1fr; }
+}
