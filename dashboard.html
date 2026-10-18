@@ -10,7 +10,6 @@
       rel="stylesheet"
     />
     <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="supabase.js"></script>
   </head>
   <body>
@@ -41,9 +40,6 @@
         <button class="side-btn" data-view="add">➕ Add Child Record</button>
         <button class="side-btn" data-view="records">📋 All Records</button>
         <button class="side-btn" data-view="purok">📍 Purok Monitoring</button>
-        <button class="side-btn" data-view="feeding">
-          🍲 Feeding Program List
-        </button>
         <div class="side-info">
           <p><b>Office Hours:</b> 7:30AM - 4:00PM</p>
           <p><b>Coverage:</b> 0-59 Months</p>
@@ -53,7 +49,7 @@
       <main class="content">
         <section id="view-dashboard" class="view active">
           <h2>Dashboard Overview</h2>
-          <div class="cards">
+          <div class="cards" style="grid-template-columns:minmax(220px,320px)">
             <div class="card card-total">
               <div class="card-flex">
                 <div>
@@ -62,39 +58,6 @@
                 </div>
                 <div class="card-icon">👶</div>
               </div>
-            </div>
-            <div class="card normal">
-              <h3 id="totalNormal">0</h3>
-              <p>Normal</p>
-            </div>
-            <div class="card under">
-              <h3 id="totalUnder">0</h3>
-              <p>Underweight</p>
-            </div>
-            <div class="card severely">
-              <h3 id="totalSevere">0</h3>
-              <p>Severely Underweight</p>
-            </div>
-            <div class="card over">
-              <h3 id="totalOver">0</h3>
-              <p>Overweight</p>
-            </div>
-            <div class="card stunted">
-              <h3 id="totalStunted">0</h3>
-              <p>Stunted (Height-for-Age)</p>
-            </div>
-            <div class="card wasted">
-              <h3 id="totalWasted">0</h3>
-              <p>Wasted (Weight-for-Ht)</p>
-            </div>
-          </div>
-          <div class="chart-box">
-            <div class="chart-header">
-              <h4 class="chart-title">Nutritional Status Distribution</h4>
-              <small class="chart-sub">0-59 months monitoring</small>
-            </div>
-            <div class="chart-canvas-wrap">
-              <canvas id="statusChart" class="chart-canvas"></canvas>
             </div>
           </div>
         </section>
@@ -152,7 +115,7 @@
             </div>
             <div>
               <label>7. Sex *</label>
-              <select id="cGender" required onchange="autoComputeEOPT()">
+              <select id="cGender" required>
                 <option value="">Select</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -160,42 +123,25 @@
             </div>
             <div>
               <label>8. Date of Birth *</label>
-              <input type="date" id="cDOB" required onchange="autoComputeEOPT()"/>
+              <input type="date" id="cDOB" required/>
             </div>
             <div>
               <label>9. Date Measured *</label>
-              <input type="date" id="cDate" required onchange="autoComputeEOPT()"/>
+              <input type="date" id="cDate" required/>
             </div>
             <div>
               <label>10. Weight (kg) *</label>
-              <input type="number" id="cWeight" step="0.1" required placeholder="12.2" oninput="autoComputeEOPT()"/>
+              <input type="number" id="cWeight" step="0.1" required placeholder="12.2"/>
             </div>
             <div>
               <label>11. Height (cm) *</label>
-              <input type="number" id="cHeight" step="0.1" required placeholder="90.1" oninput="autoComputeEOPT()"/>
+              <input type="number" id="cHeight" step="0.1" required placeholder="90.1"/>
             </div>
             <div>
               <label>12. Age in Months *</label>
-              <input type="number" id="cAge" min="0" max="59" required placeholder="Enter age in months (0-59)" oninput="autoComputeEOPT()"/>
+              <input type="number" id="cAge" min="0" max="59" required placeholder="Enter age in months (0-59)"/>
             </div>
-            <div>
-              <label>13. Weight for Age Status (Auto)</label>
-              <input type="text" id="cWFA" readonly placeholder="N / UW / SUW / OW"/>
-            </div>
-            <div>
-              <label>14. Height for Age Status (Auto)</label>
-              <input type="text" id="cHFA" readonly placeholder="N / S / SS / T"/>
-            </div>
-            <div>
-              <label>15. Weight for Lt/Ht Status (Auto)</label>
-              <input type="text" id="cWFH" readonly placeholder="N / W / SW / OW / O"/>
-            </div>
-            <div class="full bmi-result" id="bmiResultBox">
-              <div><span>Computation:</span><b id="bmiValue">--</b></div>
-              <div><span>Classifications:</span><b id="bmiClass">--</b><div id="rangeInfo" style="margin-top:6px;font-size:11px"></div></div>
-            </div>
-            <div class="full actions form-actions-grid">
-              <button type="button" class="btn-secondary" onclick="autoComputeEOPT()">🔄 Compute</button>
+            <div class="full actions form-actions-grid" style="grid-template-columns:1.5fr 1fr">
               <button type="submit" class="btn-primary" id="saveBtn">💾 Save Record</button>
               <button type="button" class="btn-outline" onclick="resetForm()">Clear</button>
             </div>
@@ -212,22 +158,10 @@
               <button class="btn-outline" onclick="exportAllToExcel()">📊 Export Excel</button>
               <button class="btn-outline" onclick="printAllRecords()">🖨️ Print</button>
               <input type="text" id="searchInput" placeholder="🔍 Search child/mother/purok..." style="min-width:220px"/>
-              <select id="filterStatus">
-                <option value="">All Status</option>
-                <option value="N">Normal</option>
-                <option value="UW">Underweight</option>
-                <option value="SUW">Severely Underweight</option>
-                <option value="OW">Overweight</option>
-                <option value="S">Stunted (incl. Severely)</option>
-                <option value="SS">Severely Stunted</option>
-                <option value="W">Wasted (incl. Severely)</option>
-                <option value="SW">Severely Wasted</option>
-                <option value="O">Obese</option>
-              </select>
             </div>
           </div>
           <div class="table-wrap" style="overflow:auto">
-            <table id="recordsTable" style="min-width:1800px">
+            <table id="recordsTable" style="min-width:1300px">
               <thead>
                 <tr style="background:#6da8d1;color:#fff">
                   <th style="min-width:50px">1<br>No.</th>
@@ -242,18 +176,11 @@
                   <th style="min-width:70px">10<br>Weight (kg)</th>
                   <th style="min-width:70px">11<br>Height (cm)</th>
                   <th style="min-width:70px">12<br>Age in Months</th>
-                  <th style="min-width:90px">13<br>Weight for Age Status</th>
-                  <th style="min-width:90px">14<br>Height for Age Status</th>
-                  <th style="min-width:90px">15<br>Weight Lt/Ht Status</th>
                   <th style="min-width:120px">Action</th>
                 </tr>
               </thead>
               <tbody></tbody>
             </table>
-          </div>
-          <div style="margin-top:12px;font-size:11px;color:#666">
-            <b>Legend:</b> WFA: N=Normal, UW=Underweight, SUW=Severely Underweight, OW=Overweight | HFA: N=Normal, S=Stunted, SS=Severely Stunted, T=Tall | WFL/H: N=Normal, W=Wasted, SW=Severely Wasted, OW=Overweight, O=Obese<br>
-            <b>Source:</b> WHO Child Growth Standards 2006 adopted by NNC (www.nnc.gov.ph) | Weight for Age & Height for Age tables from e-OPT PLUS Tool | Weight-for-Length/Height from WHO https://www.who.int/tools/child-growth-standards/standards/weight-for-length-height
           </div>
         </section>
 
@@ -288,9 +215,6 @@
                   <th>Address</th>
                   <th>Weight</th>
                   <th>Height</th>
-                  <th>WFA</th>
-                  <th>HFA</th>
-                  <th>WFL/H</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -299,68 +223,6 @@
           </div>
         </section>
 
-        <section id="view-feeding" class="view">
-          <h2>Feeding Program Priority List</h2>
-          <p>
-            Auto-generated: List of all Underweight and Severely Underweight children. Priority purok
-            ranking shows which areas need feeding program the most.
-          </p>
-          <div class="cards">
-            <div class="card under">
-              <h3 id="feedTotal">0</h3>
-              <p>Needs Feeding (Underweight)</p>
-            </div>
-            <div class="card">
-              <h3 id="feedPurokCount">0</h3>
-              <p>Affected Puroks</p>
-            </div>
-            <div class="card card-priority">
-              <h3 id="topPurokName" class="card-priority-title">-</h3>
-              <p>🔥 Priority Purok (Most Cases)</p>
-            </div>
-          </div>
-          <div id="purokPriorityBox" class="priority-box">
-            <h4 class="priority-title">
-              📊 Purok Priority Ranking - Feeding Program
-            </h4>
-            <p class="priority-desc">
-              Ranked by number of Underweight children. The top purok should be
-              prioritized for feeding program.
-            </p>
-            <div id="purokRankingList" class="ranking-list"></div>
-          </div>
-          <div class="feeding-tools">
-            <input
-              type="text"
-              id="feedingSearch"
-              placeholder="🔍 Search name for feeding..."
-              oninput="renderFeeding()"
-              class="search-input-large"
-            />
-            <button class="btn-secondary" onclick="exportFeedingToExcel()">
-              📊 Export Excel
-            </button>
-            <button class="btn-primary" onclick="printFeedingReport()">
-              🖨️ Print Report
-            </button>
-          </div>
-          <div class="table-wrap">
-            <table id="feedingTable">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Sex</th>
-                  <th>Purok</th>
-                  <th>Age</th>
-                  <th>WFA Status</th>
-                  <th>Weight</th>
-                  <th>Address</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </section>
       </main>
     </div>
 
@@ -499,7 +361,7 @@
             </div>
             <div class="update-field">
               <label>Sex *</label>
-              <select id="uGender" required onchange="calcUpdateEOPT()">
+              <select id="uGender" required>
                 <option value="">Select</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -507,31 +369,26 @@
             </div>
             <div class="update-field">
               <label>Date of Birth</label>
-              <input type="date" id="uDOB" onchange="calcUpdateEOPT()" />
+              <input type="date" id="uDOB" />
             </div>
             <div class="update-field">
               <label>Date Measured *</label>
-              <input type="date" id="uDate" required onchange="calcUpdateEOPT()" />
+              <input type="date" id="uDate" required />
             </div>
             <div class="update-field">
               <label>Weight (kg) *</label>
-              <input type="number" id="uWeight" step="0.1" required oninput="calcUpdateEOPT()" />
+              <input type="number" id="uWeight" step="0.1" required />
             </div>
             <div class="update-field">
               <label>Height (cm) *</label>
-              <input type="number" id="uHeight" step="0.1" required oninput="calcUpdateEOPT()" />
+              <input type="number" id="uHeight" step="0.1" required />
             </div>
             <div class="update-field span2">
               <label>Age in Months (0-59) *</label>
-              <input type="number" id="uAge" min="0" max="59" required oninput="calcUpdateEOPT()" />
+              <input type="number" id="uAge" min="0" max="59" required />
             </div>
           </div>
-          <div class="bmi-result" id="uBmiResultBox">
-            <div><span>Age:</span><b id="uBmiValue">--</b></div>
-            <div><span>Classification:</span><b id="uBmiClass">--</b></div>
-          </div>
-          <div class="update-actions">
-            <button type="button" class="btn-secondary" onclick="calcUpdateEOPT()">Compute</button>
+          <div class="update-actions" style="grid-template-columns:1fr 1.5fr">
             <button type="button" class="btn-outline" onclick="closeUpdateChildModal()">Cancel</button>
             <button type="submit" class="btn-primary">💾 Update Record</button>
           </div>
