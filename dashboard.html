@@ -48,16 +48,68 @@
       </aside>
       <main class="content">
         <section id="view-dashboard" class="view active">
-          <h2>Dashboard Overview</h2>
-          <div class="cards" style="grid-template-columns:minmax(220px,320px)">
-            <div class="card card-total">
-              <div class="card-flex">
-                <div>
-                  <h3 id="totalChildren">0</h3>
-                  <p>Total Children</p>
+          <div class="dash-hero">
+            <div>
+              <h2>Dashboard Overview</h2>
+              <p>Barangay Saog Nutrition Monitoring &bull; Coverage: 0-59 months</p>
+            </div>
+            <div class="dash-date" id="dDate"></div>
+          </div>
+
+          <div class="dash-stats">
+            <div class="dstat s1"><span class="di">👶</span><h3 id="totalChildren">0</h3><p>Total Children</p></div>
+            <div class="dstat s2"><span class="di">👦</span><h3 id="dMale">0</h3><p>Male</p></div>
+            <div class="dstat s3"><span class="di">👧</span><h3 id="dFemale">0</h3><p>Female</p></div>
+            <div class="dstat s4"><span class="di">🏡</span><h3 id="dIP">0</h3><p>IP Group</p></div>
+            <div class="dstat s5"><span class="di">🎂</span><h3 id="dAvgAge">0</h3><p>Average Age (months)</p></div>
+            <div class="dstat s6"><span class="di">⚖️</span><h3 id="dAvgWeight">0</h3><p>Average Weight (kg)</p></div>
+          </div>
+
+          <div class="dash-grid">
+            <div class="dash-panel">
+              <h4>Children per Purok</h4>
+              <div class="sub">Number of children registered in each purok</div>
+              <div id="dPurok"></div>
+            </div>
+            <div class="dash-panel">
+              <h4>Age Groups</h4>
+              <div class="sub">Distribution by age in months</div>
+              <div class="abars" id="dAge"></div>
+            </div>
+            <div class="dash-panel">
+              <h4>Sex</h4>
+              <div class="sub">Male vs Female</div>
+              <div class="donut-wrap">
+                <div class="donut" id="dDonut"><div class="donut-in"><b id="dDonutTotal">0</b><small>children</small></div></div>
+                <div class="legend">
+                  <span><i style="background:#1e88e5"></i>Male <b id="dMaleN">0</b></span>
+                  <span><i style="background:#ec407a"></i>Female <b id="dFemaleN">0</b></span>
                 </div>
-                <div class="card-icon">👶</div>
               </div>
+            </div>
+          </div>
+
+          <div class="dash-grid2">
+            <div class="dash-panel">
+              <h4>Recently Added</h4>
+              <div class="sub">Latest child records</div>
+              <div style="overflow-x:auto">
+                <table class="dash-table">
+                  <thead><tr><th>Name</th><th>Purok</th><th>Sex</th><th>Age (mos)</th><th>Date Measured</th></tr></thead>
+                  <tbody id="dRecent"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="dash-panel">
+              <h4>Quick Actions</h4>
+              <div class="sub">Go straight to what you need</div>
+              <div class="quick-btns">
+                <button type="button" onclick="document.querySelector('[data-view=add]').click()">➕ Add Child Record</button>
+                <button type="button" onclick="document.querySelector('[data-view=records]').click()">📋 View All Records</button>
+                <button type="button" onclick="document.querySelector('[data-view=purok]').click()">📍 Purok Monitoring</button>
+                <button type="button" onclick="document.querySelector('[data-view=records]').click();setTimeout(printAllRecords,150)">🖨️ Print e-OPT Records</button>
+              </div>
+              <div class="dash-tip"><b>Office Hours:</b> 7:30AM - 4:00PM<br><b>Monitoring:</b> 2x a year</div>
             </div>
           </div>
         </section>
@@ -71,10 +123,11 @@
               <span><b>Municipality:</b> MARILAO</span>
               <span><b>Province:</b> Bulacan</span>
               <span><b>Region:</b> III Central Luzon</span>
+              <span><b>Date:</b> 05/05/2026</span>
               <span><b>Year:</b> 2026</span>
             </div>
           </div>
-          <h3 style="margin-top:18px">Add Child Information</h3>
+          <h3 style="margin-top:18px">Add Child Information - 15 Columns Format</h3>
           <form id="childForm" class="form-grid eopt-grid">
             <input type="hidden" id="editId" />
             <div>
