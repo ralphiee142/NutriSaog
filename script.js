@@ -309,16 +309,12 @@ function refreshAll() {
 function renderDashboard() {
   const list = getChildren(), total = list.length;
   const set = (id, v) => { const e = byId(id); if (e) e.textContent = v; };
-  const nums = (arr) => arr.map(Number).filter((n) => !isNaN(n));
-  const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
   const male = list.filter((c) => sexLetter(c.gender) === "M").length;
   const female = list.filter((c) => sexLetter(c.gender) === "F").length;
   const ip = list.filter((c) => String(c.ip || "").toUpperCase() === "YES").length;
   set("totalChildren", total);
   set("dMale", male); set("dFemale", female); set("dIP", ip);
-  set("dAvgAge", avg(nums(list.map((c) => c.age))).toFixed(1));
-  set("dAvgWeight", avg(nums(list.map((c) => c.weight))).toFixed(1));
   set("dMaleN", male); set("dFemaleN", female); set("dDonutTotal", total);
   set("dDate", new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" }));
 
