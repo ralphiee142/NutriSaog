@@ -307,8 +307,54 @@ function refreshAll() {
 
 // ==================== DASHBOARD ====================
 function renderDashboard() {
-  const el = byId("totalChildren");
-  if (el) el.textContent = getChildren().length;
+  const list = getChildren(), total = list.length;
+  const set = (id, v) => { const e = byId(id); if (e) e.textContent = v; };
+  const nums = (arr) => arr.map(Number).filter((n) => !isNaN(n));
+  const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+
+  const male = list.filter((c) => sexLetter(c.gender) === "M").length;
+  const female = list.filter((c) => sexLetter(c.gender) === "F").length;
+  const ip = list.filter((c) => String(c.ip || "").toUpperCase() === "YES").length;
+  set("totalChildren", total);
+  set("dMale", male); set("dFemale", female); set("dIP", ip);
+  set("dAvgAge", avg(nums(list.map((c) => c.age))).toFixed(1));
+  set("dAvgWeight", avg(nums(list.map((c) => c.weight))).toFixed(1));
+  set("dMaleN", male); set("dFemaleN", female); set("dDonutTotal", total);
+  set("dDate", new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" }));
+
+  // Sex donut
+  const donut = byId("dDonut");
+  if (donut) {
+    const mp = total ? (male / total) * 100 : 0, fp = total ? (female / total) * 100 : 0;
+    donut.style.background = total
+      ? `conic-gradient(#1e88e5 0 ${mp}%, #ec407a ${mp}% ${mp + fp}%, #dfe6e2 ${mp + fp}% 100%)`
+      : "#dfe6e2";
+  }
+
+  // Children per purok
+  const counts = PUROK_LIST.map((p) => list.filter((c) => c.purok === p).length);
+  const maxP = Math.max(1, ...counts);
+  const pEl = byId("dPurok");
+  if (pEl) pEl.innerHTML = PUROK_LIST.map((p, i) => `
+    <div class="pbar"><span class="pn">${p}</span>
+      <div class="pt"><div style="width:${(counts[i] / maxP) * 100}%"></div></div>
+      <b>${counts[i]}</b><small>${total ? Math.round((counts[i] / total) * 100) : 0}%</small></div>`).join("");
+
+  // Age groups
+  const groups = [["0-11", 0, 11], ["12-23", 12, 23], ["24-35", 24, 35], ["36-47", 36, 47], ["48-59", 48, 59]];
+  const gc = groups.map(([, lo, hi]) => list.filter((c) => c.age != null && c.age >= lo && c.age <= hi).length);
+  const maxG = Math.max(1, ...gc);
+  const aEl = byId("dAge");
+  if (aEl) aEl.innerHTML = groups.map((g, i) => `
+    <div class="acol"><b>${gc[i]}</b><div class="abar" style="height:${Math.round((gc[i] / maxG) * 150)}px"></div><span>${g[0]}<br>months</span></div>`).join("");
+
+  // Recently added
+  const recent = [...list].sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0, 6);
+  const rEl = byId("dRecent");
+  if (rEl) rEl.innerHTML = recent.length ? recent.map((c) => `
+    <tr><td><b>${esc(c.name)}</b></td><td>${esc(c.purok)}</td><td>${sexLetter(c.gender)}</td>
+    <td>${c.age != null ? esc(c.age) : ""}</td><td>${esc(fmtDate(c.date))}</td></tr>`).join("")
+    : '<tr><td colspan="5" style="text-align:center;padding:18px;color:#888">Wala pang records.</td></tr>';
 }
 window.renderDashboard = renderDashboard;
 
@@ -676,13 +722,10 @@ function childToRow(c) {
     address: c.address || "",
     weight: isNaN(w) ? null : w,
     height: isNaN(h) ? null : h,
-    bmi: !isNaN(w) && !isNaN(h) && h > 0 ? Math.round((w / Math.pow(h / 100, 2)) * 100) / 100 : null,
     mother: c.mother || "",
     ip: c.ip || "NO",
     dob: c.dob || null,
     date_measured: c.date || null,
-    created_by: c.created_by || getCurrentUsernameGlobal(),
-    updated_by: c.updated_by || getCurrentUsernameGlobal(),
   };
 }
 function sbError(err) {
