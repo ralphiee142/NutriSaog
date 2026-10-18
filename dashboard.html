@@ -61,8 +61,6 @@
             <div class="dstat s2"><span class="di">👦</span><h3 id="dMale">0</h3><p>Male</p></div>
             <div class="dstat s3"><span class="di">👧</span><h3 id="dFemale">0</h3><p>Female</p></div>
             <div class="dstat s4"><span class="di">🏡</span><h3 id="dIP">0</h3><p>IP Group</p></div>
-            <div class="dstat s5"><span class="di">🎂</span><h3 id="dAvgAge">0</h3><p>Average Age (months)</p></div>
-            <div class="dstat s6"><span class="di">⚖️</span><h3 id="dAvgWeight">0</h3><p>Average Weight (kg)</p></div>
           </div>
 
           <div class="dash-grid">
@@ -89,7 +87,7 @@
             </div>
           </div>
 
-          <div class="dash-grid2">
+          <div class="dash-grid2" style="grid-template-columns:1fr">
             <div class="dash-panel">
               <h4>Recently Added</h4>
               <div class="sub">Latest child records</div>
@@ -100,34 +98,11 @@
                 </table>
               </div>
             </div>
-            <div class="dash-panel">
-              <h4>Quick Actions</h4>
-              <div class="sub">Go straight to what you need</div>
-              <div class="quick-btns">
-                <button type="button" onclick="document.querySelector('[data-view=add]').click()">➕ Add Child Record</button>
-                <button type="button" onclick="document.querySelector('[data-view=records]').click()">📋 View All Records</button>
-                <button type="button" onclick="document.querySelector('[data-view=purok]').click()">📍 Purok Monitoring</button>
-                <button type="button" onclick="document.querySelector('[data-view=records]').click();setTimeout(printAllRecords,150)">🖨️ Print e-OPT Records</button>
-              </div>
-              <div class="dash-tip"><b>Office Hours:</b> 7:30AM - 4:00PM<br><b>Monitoring:</b> 2x a year</div>
-            </div>
           </div>
         </section>
 
         <section id="view-add" class="view">
-          <div class="eopt-header">
-            <h2>Community Level e-OPT PLUS Tool</h2>
-            <p class="eopt-sub">WEIGHT FOR AGE, HEIGHT FOR AGE, & WEIGHT FOR LENGTH/HEIGHT STATUS</p>
-            <div class="eopt-meta">
-              <span><b>Barangay:</b> SAOG</span>
-              <span><b>Municipality:</b> MARILAO</span>
-              <span><b>Province:</b> Bulacan</span>
-              <span><b>Region:</b> III Central Luzon</span>
-              <span><b>Date:</b> 05/05/2026</span>
-              <span><b>Year:</b> 2026</span>
-            </div>
-          </div>
-          <h3 style="margin-top:18px">Add Child Information - 15 Columns Format</h3>
+          <h3 style="margin-bottom:10px">Add Child Information</h3>
           <form id="childForm" class="form-grid eopt-grid">
             <input type="hidden" id="editId" />
             <div>
@@ -203,7 +178,7 @@
         <section id="view-records" class="view">
           <div class="view-head">
             <div>
-              <h2>All Records - e-OPT PLUS Tool (15 Columns)</h2>
+              <h2>All Records - e-OPT PLUS Tool</h2>
               <small>Barangay: SAOG | Municipality: MARILAO | Province: Bulacan | Region: III Central Luzon | Date: 05/05/2026</small>
             </div>
             <div class="tools" style="margin-top:10px">
