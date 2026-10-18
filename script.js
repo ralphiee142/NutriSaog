@@ -726,6 +726,7 @@ if (childForm) {
       created_at: new Date().toISOString(),
     });
     saveChildren(list);
+    syncChild(list[list.length - 1]);
     alert("Record saved!  WFA: " + wfa + "  |  HFA: " + hfa + "  |  WFL/H: " + wfh);
     resetForm();
     refreshAll();
@@ -1122,6 +1123,7 @@ function saveUpdateChild(e) {
     updated_at: new Date().toISOString(),
   };
   saveChildren(list);
+  syncChild(list[idx]);
   closeUpdateChildModal();
   refreshAll();
 }
@@ -1137,7 +1139,10 @@ function deleteChild(id) {
 }
 function closeDeleteModal() { pendingDeleteId = null; byId("deleteModal").classList.remove("show"); }
 function confirmDelete() {
-  if (pendingDeleteId) saveChildren(getChildren().filter((x) => x.id !== pendingDeleteId));
+  if (pendingDeleteId) {
+    removeRemote(pendingDeleteId);
+    saveChildren(getChildren().filter((x) => x.id !== pendingDeleteId));
+  }
   closeDeleteModal();
   refreshAll();
 }
@@ -1203,6 +1208,108 @@ window.confirmDeleteAccount = window.confirmDeleteAccount || async function () {
   location.href = "index.html";
 };
 
+// ==================== SUPABASE SYNC (device -> Supabase "children" table) ====================
+function sbClient() {
+  try {
+    if (typeof getSupabase === "function" && typeof isSupabaseConfigured === "function" && isSupabaseConfigured()) {
+      return getSupabase();
+    }
+  } catch (e) { console.warn(e); }
+  return null;
+}
+function setDbStatus(ok, msg) {
+  const el = byId("dbStatus");
+  if (!el) return;
+  el.classList.remove("d-none", "db-connected", "db-offline");
+  el.classList.add(ok ? "db-connected" : "db-offline");
+  el.textContent = msg;
+  el.title = msg;
+}
+function childToRow(c) {
+  const w = parseFloat(c.weight), h = parseFloat(c.height);
+  return {
+    local_id: c.id,
+    name: c.name || "",
+    gender: sexFull(c.gender) || c.gender || "",
+    age: c.age != null ? parseInt(c.age, 10) : null,
+    purok: c.purok || "",
+    address: c.address || "",
+    weight: isNaN(w) ? null : w,
+    height: isNaN(h) ? null : h,
+    bmi: !isNaN(w) && !isNaN(h) && h > 0 ? Math.round((w / Math.pow(h / 100, 2)) * 100) / 100 : null,
+    status: c.wfa || "N",
+    mother: c.mother || "",
+    ip: c.ip || "NO",
+    dob: c.dob || null,
+    date_measured: c.date || null,
+    wfa: c.wfa || "N",
+    hfa: c.hfa || "N",
+    wfh: c.wfh || "N",
+    created_by: c.created_by || getCurrentUsernameGlobal(),
+    updated_by: c.updated_by || getCurrentUsernameGlobal(),
+  };
+}
+function sbError(err) {
+  console.error("Supabase sync error:", err);
+  setDbStatus(false, "⚠️ Supabase: " + (err && err.message ? err.message : err));
+}
+
+async function syncChild(c) {
+  const sb = sbClient();
+  if (!sb || !c) return;
+  try {
+    const { error } = await sb.from("children").upsert(childToRow(c), { onConflict: "local_id" });
+    if (error) throw error;
+    setDbStatus(true, "☁️ Saved to Supabase");
+  } catch (e) { sbError(e); }
+}
+async function removeRemote(localId) {
+  const sb = sbClient();
+  if (!sb || !localId) return;
+  try {
+    const { error } = await sb.from("children").delete().eq("local_id", localId);
+    if (error) throw error;
+    setDbStatus(true, "☁️ Synced");
+  } catch (e) { sbError(e); }
+}
+
+// Push everything once per page load. Old Supabase rows (no local_id yet) are matched by
+// name + weight + height and UPDATED, so walang madodoble.
+async function syncAllToSupabase() {
+  const sb = sbClient();
+  if (!sb) { setDbStatus(false, "📴 Offline (local only)"); return; }
+  try {
+    const list = getChildren();
+    const { data: remote, error } = await sb.from("children").select("id,local_id,name,weight,height");
+    if (error) throw error;
+    const known = new Set(remote.filter((r) => r.local_id).map((r) => r.local_id));
+    const legacy = remote.filter((r) => !r.local_id);
+    const norm = (v) => String(v || "").trim().toLowerCase();
+    const toUpsert = [];
+    for (const c of list) {
+      const row = childToRow(c);
+      if (!known.has(c.id)) {
+        const k = legacy.findIndex((r) => norm(r.name) === norm(c.name)
+          && Math.abs(Number(r.weight) - Number(c.weight)) < 0.01
+          && Math.abs(Number(r.height) - Number(c.height)) < 0.01);
+        if (k >= 0) {
+          const rid = legacy[k].id;
+          legacy.splice(k, 1);
+          const { error: ue } = await sb.from("children").update(row).eq("id", rid);
+          if (ue) throw ue;
+          continue;
+        }
+      }
+      toUpsert.push(row);
+    }
+    if (toUpsert.length) {
+      const { error: ie } = await sb.from("children").upsert(toUpsert, { onConflict: "local_id" });
+      if (ie) throw ie;
+    }
+    setDbStatus(true, "☁️ Supabase synced (" + list.length + ")");
+  } catch (e) { sbError(e); }
+}
+
 // ==================== MODALS: click outside / Esc ====================
 document.querySelectorAll(".modal-overlay").forEach((ov) => {
   ov.addEventListener("mousedown", (e) => { if (e.target === ov) ov.classList.remove("show"); });
@@ -1215,6 +1322,7 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener('DOMContentLoaded',()=>{
   if (!isDashboard) return;
   refreshAll();
+  syncAllToSupabase();
   const s=document.getElementById('searchInput');
   if(s) s.addEventListener('input', renderTable);
   const f=document.getElementById('filterStatus');
