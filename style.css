@@ -1289,11 +1289,22 @@ canvas { width: 100% !important; height: auto !important; }
 
 /* Age 60+ months (beyond 0-59 coverage) */
 .age-over {
-  background: #fdecea;
-  color: #c62828;
-  font-weight: 700;
-  padding: 2px 10px;
+  background: #d32f2f;
+  color: #fff;
+  font-weight: 800;
+  padding: 3px 12px;
   border-radius: 999px;
-  border: 1px solid #f5b5b0;
+  white-space: nowrap;
+  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.18);
 }
-.row-over td { background: #fff5f5; }
+.row-over td { background: #ffe3e0 !important; }
+.row-over td:first-child { box-shadow: inset 5px 0 0 #d32f2f; }
+
+/* Banner above the records table */
+.age-alert { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 12px 16px; background: #fff1f0; border: 1px solid #f5b5b0; border-left: 6px solid #d32f2f; border-radius: 12px; color: #8e1b1b; }
+.age-alert.d-none { display: none; }
+.age-alert-ico { font-size: 22px; }
+.age-alert-txt { flex: 1; font-size: 13.5px; line-height: 1.4; }
+.age-alert-txt small { color: #a33; font-size: 12px; }
+.age-alert-btn { background: #d32f2f; color: #fff; border: 0; border-radius: 10px; padding: 8px 14px; font-weight: 700; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.age-alert-btn:hover { background: #b71c1c; }
