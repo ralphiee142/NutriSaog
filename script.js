@@ -223,6 +223,7 @@ if (isDashboard) {
       if (b.dataset.view === "dashboard") renderDashboard();
       if (b.dataset.view === "records") renderTable();
       if (b.dataset.view === "purok") initPurok();
+      if (b.dataset.view === "trash") renderTrash();
     });
   });
 }
@@ -537,9 +538,9 @@ function printEOPT(list, opts) {
 </style></head><body>
 <table class="top"><tr>
   <td class="tf"><span class="red">TOOL IS FOR:</span><div class="bg">Barangay</div></td>
-  <td class="mid"><div class="t">Community Level e-OPT PLUS Tool</div>
+  <td class="mid"><div class="t">Community Level</div>
     <div class="s2">CHILD NUTRITION RECORD</div></td>
-  <td class="rt">Date: <b>${EOPT_DATE}</b> &nbsp;&nbsp;&nbsp; Year: <b>${year}</b><br>Region: <b>III Central Luzon</b></td>
+  <td class="rt">Year: <b>${year}</b><br>Region: <b>III Central Luzon</b></td>
 </tr></table>
 <div class="band"></div>
 <table class="loc"><tr>
@@ -700,20 +701,189 @@ function deleteChild(id) {
   const c = getChildren().find((x) => x.id === id);
   if (!c) return;
   pendingDeleteId = id;
-  byId("deleteMsg").textContent = `Are you sure you want to delete the record of "${c.name}"?`;
+  byId("deleteMsg").textContent = `"${c.name}" will be moved to Trash. You can restore it from the Trash page.`;
   byId("deleteModal").classList.add("show");
 }
 function closeDeleteModal() { pendingDeleteId = null; byId("deleteModal").classList.remove("show"); }
 function confirmDelete() {
-  if (pendingDeleteId) {
-    const id = pendingDeleteId;
-    saveChildren(getChildren().filter((x) => x.id !== id));
-    removeRemote(id);
-  }
+  const id = pendingDeleteId;
   closeDeleteModal();
-  refreshAll();
+  if (id) moveToTrash(id);
 }
 window.deleteChild = deleteChild;
+
+// ==================== TRASH ====================
+// Deleted records live in their own Supabase table ("children_trash"), NOT in "children".
+function getTrash() {
+  try { return JSON.parse(localStorage.getItem("nt_trash_shared") || "[]"); } catch { return []; }
+}
+function saveTrash(list) { try { localStorage.setItem("nt_trash_shared", JSON.stringify(list)); } catch {} }
+function getTrashSynced() { try { return new Set(JSON.parse(localStorage.getItem("nt_trash_synced") || "[]")); } catch { return new Set(); } }
+function saveTrashSynced(set) { try { localStorage.setItem("nt_trash_synced", JSON.stringify([...set])); } catch {} }
+
+function trashToRow(c) {
+  return { ...childToRow(c), created_by: c.created_by || null, created_at: c.created_at || null,
+    updated_by: c.updated_by || null, updated_at: c.updated_at || null,
+    deleted_by: c.deleted_by || null, deleted_at: c.deleted_at || null };
+}
+function updateTrashBadge() {
+  const b = byId("trashBadge"); if (!b) return;
+  const n = getTrash().length;
+  b.textContent = n; b.classList.toggle("d-none", n === 0);
+}
+function trashMissingMsg(e) {
+  const m = String((e && (e.message || e.details)) || "").toLowerCase();
+  return /children_trash/.test(m) || (e && (e.code === "42P01" || e.code === "PGRST205"));
+}
+function trashAlert(e) {
+  if (trashMissingMsg(e)) alert("Hindi pa nagagawa ang 'children_trash' table sa Supabase. Patakbuhin muna ang SQL para sa Trash (nasa instructions), tapos subukan ulit.");
+  else alert("Hindi na-save sa Trash ang record: " + (e && e.message ? e.message : e));
+}
+
+async function moveToTrash(id) {
+  const list = getChildren();
+  const c = list.find((x) => x.id === id);
+  if (!c) return;
+  const item = { ...c, deleted_by: getCurrentUsernameGlobal(), deleted_at: new Date().toISOString() };
+  // local first (instant UI)
+  saveChildren(list.filter((x) => x.id !== id));
+  saveTrash([item, ...getTrash().filter((x) => x.id !== id)]);
+  refreshAll(); renderTrash();
+
+  const sb = sbClient();
+  if (!sb) return;
+  pendingOps++; opSeq++;
+  try {
+    // 1) save into the trash table first (so nothing is lost), 2) then remove from children
+    let { error } = await sb.from("children_trash").upsert(trashToRow(item), { onConflict: "local_id" });
+    if (error) throw error;
+    const ts = getTrashSynced(); ts.add(id); saveTrashSynced(ts);
+    ({ error } = await sb.from("children").delete().eq("local_id", id));
+    if (error) throw error;
+    const st = getSyncedSet(); st.delete(id); saveSyncedSet(st);
+    setDbStatus(true, "Moved to trash");
+  } catch (e) {
+    // could not reach the trash table -> undo locally so the record is not lost
+    saveTrash(getTrash().filter((x) => x.id !== id));
+    const { deleted_by, deleted_at, ...orig } = item;
+    saveChildren([...getChildren().filter((x) => x.id !== id), orig]);
+    refreshAll(); renderTrash();
+    sbError(e); trashAlert(e);
+  } finally { pendingOps--; }
+}
+
+async function restoreFromTrash(id) {
+  const item = getTrash().find((x) => x.id === id);
+  if (!item) return;
+  const { deleted_by, deleted_at, ...orig } = item;
+  saveTrash(getTrash().filter((x) => x.id !== id));
+  saveChildren([...getChildren().filter((x) => x.id !== id), orig]);
+  refreshAll(); renderTrash();
+
+  const sb = sbClient();
+  if (!sb) return;
+  pendingOps++; opSeq++;
+  try {
+    let { error } = await sb.from("children").upsert(childToRow(orig), { onConflict: "local_id" });
+    if (error && sbAuditOK() && isAuditColErr(error)) {
+      localStorage.setItem("nt_sb_no_audit", "1");
+      ({ error } = await sb.from("children").upsert(childToRow(orig), { onConflict: "local_id" }));
+    }
+    if (error) throw error;
+    markSynced(id);
+    ({ error } = await sb.from("children_trash").delete().eq("local_id", id));
+    if (error) throw error;
+    const ts = getTrashSynced(); ts.delete(id); saveTrashSynced(ts);
+    setDbStatus(true, "Restored");
+  } catch (e) { sbError(e); }
+  finally { pendingOps--; }
+}
+
+let pendingPermId = null;
+function askPermDelete(id) {
+  const c = getTrash().find((x) => x.id === id);
+  if (!c) return;
+  pendingPermId = id;
+  byId("permDeleteMsg").textContent = `"${c.name}" will be deleted permanently and cannot be restored.`;
+  byId("permDeleteModal").classList.add("show");
+}
+function closePermDeleteModal() { pendingPermId = null; byId("permDeleteModal").classList.remove("show"); }
+async function confirmPermDelete() {
+  const id = pendingPermId;
+  closePermDeleteModal();
+  if (!id) return;
+  saveTrash(getTrash().filter((x) => x.id !== id));
+  renderTrash();
+  const sb = sbClient();
+  if (!sb) return;
+  pendingOps++; opSeq++;
+  try {
+    const { error } = await sb.from("children_trash").delete().eq("local_id", id);
+    if (error) throw error;
+    const ts = getTrashSynced(); ts.delete(id); saveTrashSynced(ts);
+    setDbStatus(true, "Deleted permanently");
+  } catch (e) { sbError(e); }
+  finally { pendingOps--; }
+}
+
+function renderTrash() {
+  updateTrashBadge();
+  const tb = document.querySelector("#trashTable tbody");
+  if (!tb) return;
+  const list = getTrash();
+  if (!list.length) {
+    tb.innerHTML = '<tr><td colspan="8" class="trash-empty">Trash is empty.</td></tr>';
+    return;
+  }
+  tb.innerHTML = list.map((c) => `<tr>
+    <td data-label="Child"><b>${esc(c.name)}</b></td>
+    <td data-label="Purok">${esc(c.purok)}</td>
+    <td data-label="Mother / Caregiver">${esc(c.mother)}</td>
+    <td data-label="Address">${esc(c.address)}</td>
+    <td data-label="Sex">${esc(sexLetter(c.gender))}</td>
+    <td data-label="Age (mos)">${c.age != null ? esc(c.age) : ""}</td>
+    <td data-label="Deleted by">${whoCell(c.deleted_by, c.deleted_at)}</td>
+    <td>
+      <button class="btn-outline btn-action act-restore" onclick="restoreFromTrash('${esc(c.id)}')">♻️ Restore</button>
+      <button class="btn-outline btn-action act-perm" onclick="askPermDelete('${esc(c.id)}')">❌ Delete Permanently</button>
+    </td>
+  </tr>`).join("");
+}
+window.restoreFromTrash = restoreFromTrash;
+window.askPermDelete = askPermDelete;
+window.closePermDeleteModal = closePermDeleteModal;
+window.confirmPermDelete = confirmPermDelete;
+
+// download trash from Supabase (shared between all devices)
+async function pullTrash(sb, seq0) {
+  const { data, error } = await sb.from("children_trash").select("*");
+  if (error) throw error;
+  if (opSeq !== seq0 || pendingOps > 0) return;
+  const local = getTrash();
+  const synced = getTrashSynced();
+  const remoteIds = new Set(data.map((r) => r.local_id));
+  const oldById = new Map(local.map((c) => [c.id, c]));
+  const merged = data.map((r) => ({
+    ...rowToChild(r, r.local_id, oldById.get(r.local_id)),
+    deleted_by: r.deleted_by ?? oldById.get(r.local_id)?.deleted_by ?? null,
+    deleted_at: r.deleted_at ?? oldById.get(r.local_id)?.deleted_at ?? null,
+  }));
+  const toPush = [];
+  for (const c of local) {
+    if (remoteIds.has(c.id) || synced.has(c.id)) continue;   // synced+missing = restored/deleted elsewhere
+    merged.push(c); toPush.push(trashToRow(c));
+  }
+  if (toPush.length) {
+    const { error: pe } = await sb.from("children_trash").upsert(toPush, { onConflict: "local_id" });
+    if (pe) throw pe;
+  }
+  merged.sort((a, b) => String(b.deleted_at || "").localeCompare(String(a.deleted_at || "")));
+  saveTrashSynced(new Set([...remoteIds, ...toPush.map((r) => r.local_id)]));
+  if (JSON.stringify(merged) !== JSON.stringify(local)) {
+    saveTrash(merged);
+    renderTrash();
+  } else updateTrashBadge();
+}
 
 // ==================== SUPABASE SYNC (device -> Supabase "children" table) ====================
 function sbClient() {
@@ -771,6 +941,7 @@ function sbError(err) {
   setDbStatus(false, "⚠️ Supabase: " + (err && err.message ? err.message : err));
 }
 // ---- shared-database logic: Supabase is the single source of truth for ALL devices ----
+let opSeq = 0;        // bumps on every write; a pull that overlapped a write is discarded
 let pendingOps = 0;   // writes in flight; we don't pull while one is running (would overwrite fresh edits)
 let pulling = false;
 function getSyncedSet() { try { return new Set(JSON.parse(localStorage.getItem("nt_synced_ids") || "[]")); } catch { return new Set(); } }
@@ -780,7 +951,7 @@ function markSynced(id) { const st = getSyncedSet(); st.add(id); saveSyncedSet(s
 async function syncChild(c) {
   const sb = sbClient();
   if (!sb || !c) return;
-  pendingOps++;
+  pendingOps++; opSeq++;
   try {
     let { error } = await sb.from("children").upsert(childToRow(c), { onConflict: "local_id" });
     if (error && sbAuditOK() && isAuditColErr(error)) {
@@ -796,7 +967,7 @@ async function syncChild(c) {
 async function removeRemote(localId) {
   const sb = sbClient();
   if (!sb || !localId) return;
-  pendingOps++;
+  pendingOps++; opSeq++;
   try {
     const { error } = await sb.from("children").delete().eq("local_id", localId);
     if (error) throw error;
@@ -834,9 +1005,11 @@ async function pullFromSupabase(force) {
   if (!sb) { setDbStatus(false, "Offline (local only)"); return false; }
   if (pulling || (pendingOps > 0 && !force)) return false;
   pulling = true;
+  const seq0 = opSeq;
   try {
     const { data, error } = await sb.from("children").select("*");
     if (error) throw error;
+    if (opSeq !== seq0 || pendingOps > 0) return false;   // something was edited meanwhile -> skip this pull
 
     // audit columns exist in the table? -> clear the "no audit" flag automatically
     if (data.length && "updated_by" in data[0]) localStorage.removeItem("nt_sb_no_audit");
@@ -898,6 +1071,8 @@ async function pullFromSupabase(force) {
     if (changed) saveChildren(merged);
     setDbStatus(true, "Supabase synced (" + merged.length + ")");
     if (changed) refreshAll();
+    try { await pullTrash(sb, seq0); }
+    catch (te) { console.warn("Trash sync:", te); if (trashMissingMsg(te)) setDbStatus(false, "⚠️ Create the 'children_trash' table in Supabase (see SQL)"); }
     return true;
   } catch (e) { sbError(e); return false; }
   finally { pulling = false; }
@@ -976,6 +1151,7 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   if (!isDashboard) return;
   refreshAll();
+  updateTrashBadge();
   syncAllToSupabase();                       // load shared records from Supabase
   setInterval(() => pullFromSupabase(), 15000); // pick up other devices' changes every 15s
   document.addEventListener("visibilitychange", () => { if (!document.hidden) pullFromSupabase(); });
