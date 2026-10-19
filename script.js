@@ -176,16 +176,27 @@ if (registerForm) {
 }
 
 
-// ==================== GOOGLE LOGIN + FORGOT PASSWORD (Supabase Auth OTP) ====================
-// Staff accounts stay in the "users" table. Google / OTP are only used to PROVE who you are:
-// the verified Google email must already be linked to a staff account (see Account Settings).
+// ==================== GOOGLE / PHONE LOGIN + FORGOT PASSWORD (Supabase Auth OTP) ====================
+// Staff accounts stay in the "users" table. Google / phone / OTP are only used to PROVE who you are:
+// the verified email / phone must already be linked to a staff account (see Account Settings).
 const authReady = () => USE_SUPABASE && typeof getSupabase === "function" && typeof isSupabaseConfigured === "function" && isSupabaseConfigured();
 const $id = (i) => document.getElementById(i);
 const digitsOnly = (v) => String(v || "").replace(/\D/g, "");
+function normPhone(v) {            // 0917 123 4567 / 9171234567 / 639171234567 -> +639171234567
+  let d = String(v || "").replace(/[^\d+]/g, "");
+  if (d.startsWith("+")) return d;
+  if (/^09\d{9}$/.test(d)) return "+63" + d.slice(1);
+  if (/^9\d{9}$/.test(d)) return "+63" + d;
+  if (/^63\d{10}$/.test(d)) return "+" + d;
+  return d;
+}
 function maskEmail(e) { const [a, b] = String(e).split("@"); return (a || "").slice(0, 2) + "***@" + (b || ""); }
+function maskPhone(p) { const d = String(p); return d.slice(0, 4) + "*".repeat(Math.max(0, d.length - 6)) + d.slice(-2); }
 function authErr(e) {
   const m = String((e && e.message) || e || "Something went wrong.");
-  if (e && e.code === "42703") return "The users table needs the 'email' column. Run the SQL for recovery options in Supabase first.";
+  if (e && e.code === "42703") return "The users table needs the 'email' and 'phone' columns. Run the SQL for recovery options in Supabase first.";
+  if (/sms|phone/i.test(m) && /provider|not enabled|unsupported|disabled/i.test(m))
+    return m + "\n\nPhone login needs the Phone provider + an SMS provider enabled in Supabase (Authentication > Providers).";
   if (/rate limit|too many|seconds/i.test(m)) return "Please wait a bit before asking for another code.\n\n" + m;
   return m;
 }
@@ -246,12 +257,51 @@ if (loginForm) {
     } catch (e) { alert(authErr(e)); }
   })();
 
+  // ---- Continue with phone number ----
+  let phoneCtx = null;
+  $id("phoneBtn")?.addEventListener("click", () => {
+    phoneCtx = null; step(["phStep1", "phStep2"], "phStep1");
+    $id("phoneInput").value = ""; $id("phoneCode").value = "";
+    showPanel("phoneForm");
+  });
+  async function phoneSend() {
+    if (!authReady()) return alert("Supabase is not configured.");
+    const phone = normPhone($id("phoneInput").value);
+    if (!/^\+\d{10,15}$/.test(phone)) return alert("Enter a valid mobile number, e.g. 09171234567.");
+    const btn = $id("phoneSendBtn"); btn.disabled = true;
+    try {
+      const user = await lookupUser("phone", phone);
+      if (!user) { btn.disabled = false; return alert("This number is not linked to any staff account.\n\nLog in with your username and password, then link your number in Account Settings."); }
+      const { error } = await getSupabase().auth.signInWithOtp({ phone });
+      if (error) throw error;
+      phoneCtx = { phone, user };
+      $id("phoneSentTo").textContent = maskPhone(phone);
+      step(["phStep1", "phStep2"], "phStep2");
+      $id("phoneCode").focus();
+      cooldown($id("phoneResendBtn"), 60);
+    } catch (e) { alert(authErr(e)); }
+    btn.disabled = false;
+  }
+  async function phoneVerify() {
+    const token = digitsOnly($id("phoneCode").value);
+    if (token.length < 6 || !phoneCtx) return alert("Enter the code that was sent to your phone.");
+    try {
+      const { data, error } = await getSupabase().auth.verifyOtp({ phone: phoneCtx.phone, token, type: "sms" });
+      if (error) throw error;
+      if (digitsOnly(data?.user?.phone) !== digitsOnly(phoneCtx.phone)) throw new Error("Verification failed.");
+      await authSignOutLocal();
+      loginAs(phoneCtx.user);
+    } catch (e) { alert(authErr(e)); }
+  }
+  $id("phoneForm")?.addEventListener("submit", (e) => { e.preventDefault(); $id("phStep2").classList.contains("d-none") ? phoneSend() : phoneVerify(); });
+  $id("phoneResendBtn")?.addEventListener("click", phoneSend);
+
   // ---- Forgot password ----
-  let fg = { step: 1, user: null, value: null };
-  const FG_STEPS = ["fgStep1", "fgStep3", "fgStep4"];
+  let fg = { step: 1, user: null, channel: null, value: null };
+  const FG_STEPS = ["fgStep1", "fgStep2", "fgStep3", "fgStep4"];
   $id("forgotLink")?.addEventListener("click", (e) => {
     e.preventDefault();
-    fg = { step: 1, user: null, value: null };
+    fg = { step: 1, user: null, channel: null, value: null };
     ["fgUser", "fgCode", "fgPass", "fgPass2"].forEach((i) => ($id(i).value = ""));
     step(FG_STEPS, "fgStep1");
     showPanel("forgotForm");
@@ -264,19 +314,29 @@ if (loginForm) {
     try {
       const user = await lookupUser("username", u);
       if (!user) return alert("Username not found.");
-      if (!user.email)
-        return alert("This account has no linked Google email, so a code can't be sent.\n\nPlease ask the barangay admin to reset your password.");
+      if (!user.email && !user.phone)
+        return alert("This account has no linked Google email or phone number, so a code can't be sent.\n\nPlease ask the barangay admin to reset your password.");
       fg.user = user;
-      await fgSend();
+      const opts = [];
+      if (user.email) opts.push({ k: "email", ico: "✉️", t: "Google / email", v: maskEmail(user.email) });
+      if (user.phone) opts.push({ k: "phone", ico: "📱", t: "Phone (SMS)", v: maskPhone(user.phone) });
+      $id("fgChannels").innerHTML = opts.map((o, i) => `<label class="channel ${i === 0 ? "sel" : ""}">
+        <input type="radio" name="fgCh" value="${o.k}" ${i === 0 ? "checked" : ""}/><span class="ch-ico">${o.ico}</span>
+        <span><span class="ch-t">${o.t}</span><span class="ch-v">${o.v}</span></span></label>`).join("");
+      $id("fgChannels").querySelectorAll("input").forEach((r) => r.addEventListener("change", () => {
+        $id("fgChannels").querySelectorAll(".channel").forEach((c) => c.classList.toggle("sel", c.querySelector("input").checked));
+      }));
+      fg.step = 2; step(FG_STEPS, "fgStep2");
     } catch (e) { alert(authErr(e)); }
   }
   async function fgSend() {
-    if (!fg.user) return;
-    fg.value = String(fg.user.email).toLowerCase();
+    const ch = document.querySelector("input[name=fgCh]:checked")?.value;
+    if (!ch || !fg.user) return;
+    fg.channel = ch; fg.value = ch === "email" ? String(fg.user.email).toLowerCase() : normPhone(fg.user.phone);
     try {
-      const { error } = await getSupabase().auth.signInWithOtp({ email: fg.value });
+      const { error } = await getSupabase().auth.signInWithOtp(ch === "email" ? { email: fg.value } : { phone: fg.value });
       if (error) throw error;
-      $id("fgSentTo").textContent = maskEmail(fg.value);
+      $id("fgSentTo").textContent = ch === "email" ? maskEmail(fg.value) : maskPhone(fg.value);
       fg.step = 3; step(FG_STEPS, "fgStep3"); $id("fgCode").focus();
       cooldown($id("fgResendBtn"), 60);
     } catch (e) { alert(authErr(e)); }
@@ -285,9 +345,13 @@ if (loginForm) {
     const token = digitsOnly($id("fgCode").value);
     if (token.length < 6) return alert("Enter the code we sent you.");
     try {
-      const { data, error } = await getSupabase().auth.verifyOtp({ email: fg.value, token, type: "email" });
+      const args = fg.channel === "email" ? { email: fg.value, token, type: "email" } : { phone: fg.value, token, type: "sms" };
+      const { data, error } = await getSupabase().auth.verifyOtp(args);
       if (error) throw error;
-      if (String(data?.user?.email || "").toLowerCase() !== fg.value) throw new Error("Verification failed.");
+      const ok = fg.channel === "email"
+        ? String(data?.user?.email || "").toLowerCase() === fg.value
+        : digitsOnly(data?.user?.phone) === digitsOnly(fg.value);
+      if (!ok) throw new Error("Verification failed.");
       await authSignOutLocal();
       fg.step = 4; step(FG_STEPS, "fgStep4"); $id("fgPass").focus();
     } catch (e) { alert(authErr(e)); }
@@ -300,7 +364,7 @@ if (loginForm) {
       const { error } = await getSupabase().from("users").update({ password: p }).eq("username", fg.user.username);
       if (error) throw error;
       const uname = fg.user.username;
-      fg = { step: 1, user: null, value: null };
+      fg = { step: 1, user: null, channel: null, value: null };
       alert("Password updated! You can now log in with your new password.");
       document.querySelector("[data-tab=login]")?.click();
       $id("loginUser").value = uname; $id("loginPass").value = ""; $id("loginPass").focus();
@@ -1247,22 +1311,27 @@ window.showAccountModal = window.showAccountModal || function () {
   byId("accountModal").classList.add("show");
 };
 
-// ---- Recovery options (Google) in Account Settings ----
-let recov = { email: "" };
+// ---- Recovery options (Google / phone) in Account Settings ----
+let recov = { email: "", phone: "" };
 function renderRecovery() {
-  const g = byId("recGoogleStatus");
-  if (!g) return;
+  const g = byId("recGoogleStatus"), p = byId("recPhoneStatus");
+  if (!g || !p) return;
   g.textContent = recov.email ? "Linked: " + recov.email : "Not linked";
   g.classList.toggle("linked", !!recov.email);
+  p.textContent = recov.phone ? "Linked: " + recov.phone : "Not linked";
+  p.classList.toggle("linked", !!recov.phone);
   byId("recGoogleBtn").classList.toggle("d-none", !!recov.email);
   byId("recGoogleUnlink").classList.toggle("d-none", !recov.email);
+  byId("recPhoneUnlink").classList.toggle("d-none", !recov.phone);
+  byId("recPhoneAdd").classList.toggle("d-none", !!recov.phone);
+  byId("recPhoneCodeWrap").classList.add("d-none");
 }
 async function loadRecovery() {
-  recov = { email: "" };
+  recov = { email: "", phone: "" };
   try {
     if (authReady()) {
-      const { data } = await getSupabase().from("users").select("email").eq("username", getCurrentUsernameGlobal()).maybeSingle();
-      if (data) recov = { email: data.email || "" };
+      const { data } = await getSupabase().from("users").select("email,phone").eq("username", getCurrentUsernameGlobal()).maybeSingle();
+      if (data) recov = { email: data.email || "", phone: data.phone || "" };
     }
   } catch (e) { console.warn("recovery load", e); }
   renderRecovery();
@@ -1270,7 +1339,7 @@ async function loadRecovery() {
 }
 function saveRecoveryLocal() {
   const cu = getCurrentUserGlobal() || {};
-  cu.email = recov.email || null;
+  cu.email = recov.email || null; cu.phone = recov.phone || null;
   localStorage.setItem("nt_current", JSON.stringify(cu));
 }
 async function setRecovery(fields) {
@@ -1291,11 +1360,43 @@ window.unlinkGoogleAccount = async function () {
   if (!confirm("Unlink this Google account? You won't be able to use it to sign in or reset your password.")) return;
   try { await setRecovery({ email: null }); } catch (e) { alert(authErr(e)); }
 };
+let linkPhone = null;
+window.sendLinkPhoneCode = async function () {
+  if (!authReady()) return alert("Supabase is not configured.");
+  const phone = normPhone(byId("recPhone").value);
+  if (!/^\+\d{10,15}$/.test(phone)) return alert("Enter a valid mobile number, e.g. 09171234567.");
+  try {
+    const owner = await lookupUser("phone", phone);
+    if (owner && owner.username !== getCurrentUsernameGlobal()) return alert("This number is already linked to another staff account.");
+    const { error } = await getSupabase().auth.signInWithOtp({ phone });
+    if (error) throw error;
+    linkPhone = phone;
+    byId("recPhoneCodeWrap").classList.remove("d-none");
+    byId("recPhoneCode").value = ""; byId("recPhoneCode").focus();
+  } catch (e) { alert(authErr(e)); }
+};
+window.verifyLinkPhone = async function () {
+  const token = digitsOnly(byId("recPhoneCode").value);
+  if (token.length < 6 || !linkPhone) return alert("Enter the code that was sent to your phone.");
+  try {
+    const { data, error } = await getSupabase().auth.verifyOtp({ phone: linkPhone, token, type: "sms" });
+    if (error) throw error;
+    if (digitsOnly(data?.user?.phone) !== digitsOnly(linkPhone)) throw new Error("Verification failed.");
+    await authSignOutLocal();
+    await setRecovery({ phone: linkPhone });
+    byId("recPhone").value = ""; linkPhone = null;
+    alert("Phone number linked!");
+  } catch (e) { alert(authErr(e)); }
+};
+window.unlinkPhone = async function () {
+  if (!confirm("Unlink this phone number?")) return;
+  try { await setRecovery({ phone: null }); } catch (e) { alert(authErr(e)); }
+};
 window.dismissRecoveryBanner = function () { sessionStorage.setItem("nt_rb_dismiss", "1"); byId("recoveryBanner")?.classList.add("d-none"); };
 async function checkRecoveryBanner() {
   if (!authReady() || sessionStorage.getItem("nt_rb_dismiss")) return;
   await loadRecovery();
-  if (!recov.email) byId("recoveryBanner")?.classList.remove("d-none");
+  if (!recov.email && !recov.phone) byId("recoveryBanner")?.classList.remove("d-none");
 }
 // coming back from Google after pressing "Link Google"
 async function handleLinkReturn() {
