@@ -315,17 +315,7 @@ function renderDashboard() {
   const ip = list.filter((c) => String(c.ip || "").toUpperCase() === "YES").length;
   set("totalChildren", total);
   set("dMale", male); set("dFemale", female); set("dIP", ip);
-  set("dMaleN", male); set("dFemaleN", female); set("dDonutTotal", total);
   set("dDate", new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" }));
-
-  // Sex donut
-  const donut = byId("dDonut");
-  if (donut) {
-    const mp = total ? (male / total) * 100 : 0, fp = total ? (female / total) * 100 : 0;
-    donut.style.background = total
-      ? `conic-gradient(#1e88e5 0 ${mp}%, #ec407a ${mp}% ${mp + fp}%, #dfe6e2 ${mp + fp}% 100%)`
-      : "#dfe6e2";
-  }
 
   // Children per purok
   const counts = PUROK_LIST.map((p) => list.filter((c) => c.purok === p).length);
@@ -343,14 +333,6 @@ function renderDashboard() {
   const aEl = byId("dAge");
   if (aEl) aEl.innerHTML = groups.map((g, i) => `
     <div class="acol"><b>${gc[i]}</b><div class="abar" style="height:${Math.round((gc[i] / maxG) * 150)}px"></div><span>${g[0]}<br>months</span></div>`).join("");
-
-  // Recently added
-  const recent = [...list].sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0, 6);
-  const rEl = byId("dRecent");
-  if (rEl) rEl.innerHTML = recent.length ? recent.map((c) => `
-    <tr><td><b>${esc(c.name)}</b></td><td>${esc(c.purok)}</td><td>${sexLetter(c.gender)}</td>
-    <td>${c.age != null ? esc(c.age) : ""}</td><td>${esc(fmtDate(c.date))}</td></tr>`).join("")
-    : '<tr><td colspan="5" style="text-align:center;padding:18px;color:#888">Wala pang records.</td></tr>';
 }
 window.renderDashboard = renderDashboard;
 
@@ -401,15 +383,26 @@ function getFilteredRecords() {
   return getChildren().filter((c) => !q || `${c.name} ${c.mother} ${c.purok} ${c.address}`.toLowerCase().includes(q));
 }
 function actionButtons(id) {
-  return `<button class="btn-outline btn-mini" title="Edit" onclick="editChild('${id}')">✏️</button>
-          <button class="btn-outline btn-mini" title="Delete" onclick="deleteChild('${id}')">🗑️</button>`;
+  return `<button class="btn-outline btn-action btn-update" title="Update record" onclick="editChild('${id}')">✏️ Update</button>
+          <button class="btn-outline btn-action btn-del" title="Delete record" onclick="deleteChild('${id}')">🗑️ Delete</button>`;
+}
+function fmtStamp(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return d.toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+function whoCell(user, iso) {
+  if (!user) return '<span class="who-none">—</span>';
+  const t = fmtStamp(iso);
+  return `<div class="who-cell"><b>${esc(user)}</b>${t ? `<small>${esc(t)}</small>` : ""}</div>`;
 }
 function renderTable() {
   const tbody = document.querySelector("#recordsTable tbody");
   if (!tbody) return;
   const list = getFilteredRecords();
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px;color:#888">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:20px;color:#888">No records found.</td></tr>';
     return;
   }
   tbody.innerHTML = list.map((c, i) => `
@@ -426,6 +419,8 @@ function renderTable() {
       <td>${esc(c.weight)}</td>
       <td>${esc(c.height)}</td>
       <td>${c.age != null ? esc(c.age) : ""}</td>
+      <td>${whoCell(c.created_by, c.created_at)}</td>
+      <td>${whoCell(c.updated_by, c.updated_at)}</td>
       <td>${actionButtons(c.id)}</td>
     </tr>`).join("");
 }
@@ -442,6 +437,35 @@ function downloadCSV(filename, headers, rows) {
   a.click();
   a.remove();
 }
+// Real .xlsx export (SheetJS) - columns are auto-sized so dates never show as ########.
+// dateCols = indexes of columns that hold yyyy-mm-dd dates.
+function downloadXLSX(filename, sheetName, headers, rows, dateCols) {
+  dateCols = dateCols || [];
+  if (typeof XLSX === "undefined") {
+    return downloadCSV(filename.replace(/\.xlsx$/, ".csv"), headers, rows); // offline fallback
+  }
+  const data = rows.map((r) => r.map((v, ci) => {
+    if (dateCols.includes(ci) && /^\d{4}-\d{2}-\d{2}/.test(String(v || ""))) {
+      const [y, m, d] = String(v).slice(0, 10).split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d));
+    }
+    return v == null ? "" : v;
+  }));
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data], { cellDates: true });
+  Object.keys(ws).forEach((k) => {
+    if (k[0] === "!") return;
+    const col = XLSX.utils.decode_cell(k).c, row = XLSX.utils.decode_cell(k).r;
+    if (row > 0 && dateCols.includes(col) && ws[k].t === "d") ws[k].z = "yyyy-mm-dd";
+  });
+  ws["!cols"] = headers.map((h, ci) => {
+    let w = String(h).length;
+    rows.forEach((r) => { w = Math.max(w, String(r[ci] == null ? "" : r[ci]).length); });
+    return { wch: Math.min(Math.max(w + 3, dateCols.includes(ci) ? 14 : 8), 50) };
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, filename);
+}
 const REC_HEAD = ["No.", "Purok", "Address", "Mother/Caregiver", "Child", "IP Group", "Sex", "Date of Birth",
   "Date Measured", "Weight (kg)", "Height (cm)", "Age (months)"];
 const recRow = (c, i) => [i + 1, c.purok, c.address, c.mother, c.name, c.ip || "NO", sexLetter(c.gender),
@@ -450,7 +474,7 @@ const recRow = (c, i) => [i + 1, c.purok, c.address, c.mother, c.name, c.ip || "
 function exportAllToExcel() {
   const list = getFilteredRecords();
   if (!list.length) return alert("Walang records na i-export.");
-  downloadCSV("e-OPT-PLUS-SAOG.csv", REC_HEAD, list.map(recRow));
+  downloadXLSX("e-OPT-PLUS-SAOG.xlsx", "e-OPT PLUS", REC_HEAD, list.map(recRow), [7, 8]);
 }
 
 const EOPT_DATE = "05/05/2026"; // petsa ng e-OPT tool sa header ng print - palitan dito kung magbago
@@ -609,7 +633,7 @@ const purokRow = (c) => [c.name, sexLetter(c.gender), c.age, c.address, c.weight
 function exportPurokToExcel() {
   const list = purokList();
   if (!list.length) return alert("Walang records sa " + activePurok + ".");
-  downloadCSV(`Purok-Monitoring-${activePurok.replace(" ", "")}.csv`, PUROK_HEAD, list.map(purokRow));
+  downloadXLSX(`Purok-Monitoring-${activePurok.replace(" ", "")}.xlsx`, activePurok, PUROK_HEAD, list.map(purokRow), []);
 }
 function printPurokReport() {
   const list = purokList();
@@ -699,11 +723,15 @@ function sbClient() {
   } catch (e) { console.warn(e); }
   return null;
 }
+// Status badge is hidden when everything is fine (sync still runs in the background).
+// It only appears if Supabase sync fails, so problems are not silent.
 function setDbStatus(ok, msg) {
   const el = byId("dbStatus");
+  console.log(ok ? "[Supabase]" : "[Supabase ERROR]", msg);
   if (!el) return;
+  if (ok) { el.classList.add("d-none"); return; }
   el.classList.remove("d-none", "db-connected", "db-offline");
-  el.classList.add(ok ? "db-connected" : "db-offline");
+  el.classList.add("db-offline");
   el.textContent = msg;
   el.title = msg;
 }
@@ -722,7 +750,20 @@ function childToRow(c) {
     ip: c.ip || "NO",
     dob: c.dob || null,
     date_measured: c.date || null,
+    ...(sbAuditOK() ? {
+      created_by: c.created_by || null,
+      created_at: c.created_at || null,
+      updated_by: c.updated_by || null,
+      updated_at: c.updated_at || null,
+    } : {}),
   };
+}
+// created_by/updated_by columns may not exist in Supabase yet. If the first sync fails because of
+// them, we drop those fields (local tracking still works) and remember it.
+function sbAuditOK() { return localStorage.getItem("nt_sb_no_audit") !== "1"; }
+function isAuditColErr(e) {
+  const m = String((e && (e.message || e.details)) || "").toLowerCase();
+  return /created_by|updated_by|created_at|updated_at/.test(m) || (e && e.code === "PGRST204");
 }
 function sbError(err) {
   console.error("Supabase sync error:", err);
@@ -732,7 +773,11 @@ async function syncChild(c) {
   const sb = sbClient();
   if (!sb || !c) return;
   try {
-    const { error } = await sb.from("children").upsert(childToRow(c), { onConflict: "local_id" });
+    let { error } = await sb.from("children").upsert(childToRow(c), { onConflict: "local_id" });
+    if (error && sbAuditOK() && isAuditColErr(error)) {
+      localStorage.setItem("nt_sb_no_audit", "1");
+      ({ error } = await sb.from("children").upsert(childToRow(c), { onConflict: "local_id" }));
+    }
     if (error) throw error;
     setDbStatus(true, "☁️ Saved to Supabase");
   } catch (e) { sbError(e); }
@@ -768,7 +813,12 @@ async function syncAllToSupabase() {
         if (k >= 0) {
           const rid = legacy[k].id;
           legacy.splice(k, 1);
-          const { error: ue } = await sb.from("children").update(row).eq("id", rid);
+          let { error: ue } = await sb.from("children").update(row).eq("id", rid);
+          if (ue && sbAuditOK() && isAuditColErr(ue)) {
+            localStorage.setItem("nt_sb_no_audit", "1");
+            const { created_by, created_at, updated_by, updated_at, ...slimRow } = row;
+            ({ error: ue } = await sb.from("children").update(slimRow).eq("id", rid));
+          }
           if (ue) throw ue;
           continue;
         }
@@ -776,7 +826,12 @@ async function syncAllToSupabase() {
       toUpsert.push(row);
     }
     if (toUpsert.length) {
-      const { error: ie } = await sb.from("children").upsert(toUpsert, { onConflict: "local_id" });
+      let { error: ie } = await sb.from("children").upsert(toUpsert, { onConflict: "local_id" });
+      if (ie && sbAuditOK() && isAuditColErr(ie)) {
+        localStorage.setItem("nt_sb_no_audit", "1");
+        const slim = toUpsert.map(({ created_by, created_at, updated_by, updated_at, ...r }) => r);
+        ({ error: ie } = await sb.from("children").upsert(slim, { onConflict: "local_id" }));
+      }
       if (ie) throw ie;
     }
     setDbStatus(true, "☁️ Supabase synced (" + list.length + ")");
