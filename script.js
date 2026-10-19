@@ -826,23 +826,38 @@ async function confirmPermDelete() {
   finally { pendingOps--; }
 }
 
+function deletedCell(user, iso) {
+  if (!user) return '<span class="who-none">—</span>';
+  const t = fmtStamp(iso);
+  return `<div class="del-chip"><span class="del-av">${esc(String(user).charAt(0).toUpperCase())}</span>
+    <div class="who-cell"><b>${esc(user)}</b>${t ? `<small>${esc(t)}</small>` : ""}</div></div>`;
+}
 function renderTrash() {
   updateTrashBadge();
   const tb = document.querySelector("#trashTable tbody");
   if (!tb) return;
   const list = getTrash();
+  const cnt = byId("trashCount"); if (cnt) cnt.textContent = list.length;
   if (!list.length) {
-    tb.innerHTML = '<tr><td colspan="8" class="trash-empty">Trash is empty.</td></tr>';
+    tb.innerHTML = `<tr class="trash-empty-row"><td colspan="14" class="trash-empty">
+      <div class="te-ico">🗑️</div><div class="te-t">Trash is empty</div>
+      <div class="te-s">Deleted child records will show up here.</div></td></tr>`;
     return;
   }
-  tb.innerHTML = list.map((c) => `<tr>
-    <td data-label="Child"><b>${esc(c.name)}</b></td>
+  tb.innerHTML = list.map((c, i) => `<tr>
+    <td data-label="No.">${i + 1}</td>
     <td data-label="Purok">${esc(c.purok)}</td>
+    <td data-label="Address" title="${esc(c.address)}">${esc(c.address)}</td>
     <td data-label="Mother / Caregiver">${esc(c.mother)}</td>
-    <td data-label="Address">${esc(c.address)}</td>
+    <td data-label="Child"><b>${esc(c.name)}</b></td>
+    <td data-label="IP Group">${esc(c.ip || "NO")}</td>
     <td data-label="Sex">${esc(sexLetter(c.gender))}</td>
+    <td data-label="Date of Birth">${esc(c.dob || "")}</td>
+    <td data-label="Date Measured">${esc(c.date || "")}</td>
+    <td data-label="Weight (kg)">${c.weight != null && c.weight !== "" ? esc(c.weight) : ""}</td>
+    <td data-label="Height (cm)">${c.height != null && c.height !== "" ? esc(c.height) : ""}</td>
     <td data-label="Age (mos)">${c.age != null ? esc(c.age) : ""}</td>
-    <td data-label="Deleted by">${whoCell(c.deleted_by, c.deleted_at)}</td>
+    <td data-label="Deleted by">${deletedCell(c.deleted_by, c.deleted_at)}</td>
     <td>
       <button class="btn-outline btn-action act-restore" onclick="restoreFromTrash('${esc(c.id)}')">♻️ Restore</button>
       <button class="btn-outline btn-action act-perm" onclick="askPermDelete('${esc(c.id)}')">❌ Delete Permanently</button>
