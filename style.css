@@ -959,6 +959,51 @@ canvas { width: 100% !important; height: auto !important; }
 @media (max-width: 1100px) {
   .dash-grid, .dash-grid2 { grid-template-columns: 1fr; }
 }
+
+/* =====================================================================
+   DESIGN POLISH (soft, easy on the eyes)
+   ===================================================================== */
+/* page titles with a small accent bar */
+.view h2 { display: flex; align-items: center; gap: 10px; letter-spacing: -.2px; }
+.view h2::before { content: ""; width: 5px; height: 22px; border-radius: 4px; background: linear-gradient(180deg, #2e9e68, #1a7a4c); flex-shrink: 0; }
+.trash-hero h2::before { display: none; }
+.view-sub { font-size: 12.5px; color: #6b7b72; margin: 2px 0 14px 15px; }
+.count-chip { font-size: 11.5px; font-weight: 700; color: #1a7a4c; background: #e3f3ea; padding: 3px 11px; border-radius: 999px; letter-spacing: 0; }
+
+/* add-child form: grouped sections */
+.form-grid { border-top: 4px solid #2e9e68; padding: 24px 26px; gap: 16px 20px; }
+.fsec { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: #1a6b44; padding-bottom: 8px; border-bottom: 1px solid #e3efe7; margin-top: 6px; }
+.fsec:first-of-type { margin-top: 0; }
+.form-grid > .fsec:first-of-type, .form-grid > input + .fsec { margin-top: 0; }
+.fsec .fi { width: 30px; height: 30px; border-radius: 10px; background: #e6f4ec; display: grid; place-items: center; font-size: 15px; }
+.form-grid label { color: #3b4a42; letter-spacing: .1px; }
+.form-grid input, .form-grid select { transition: border-color .2s, box-shadow .2s, background .2s; }
+.form-grid input:hover, .form-grid select:hover { border-color: #b9d8c6; }
+.form-grid input[readonly] { background: #f3f6f4; color: #8a978f; }
+
+/* tables: soft hover, zebra, badges */
+#recordsTable tbody tr, #purokTable tbody tr { transition: background .15s; }
+#recordsTable tbody tr:hover td, #purokTable tbody tr:hover td { background: #eef7f1; }
+#recordsTable tbody td, #purokTable tbody td { border-bottom: 1px solid #edf2ee; }
+#purokTable tbody tr:nth-child(even) { background: #fafcfa; }
+.table-wrap { border: 1px solid #e6eee8; }
+.sx { display: inline-block; min-width: 26px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.3; }
+.sx-m { background: #e3effc; color: #1e5fa8; }
+.sx-f { background: #fde7ef; color: #b02a5b; }
+.ipb { display: inline-block; min-width: 34px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; background: #eef2ef; color: #66756c; }
+.ipb-yes { background: #fff0d6; color: #a85f00; font-weight: 700; }
+
+/* toolbar buttons + search */
+.tools .btn-outline, .export-actions .btn-outline { box-shadow: 0 1px 3px rgba(20,60,40,.06); }
+.tools input, .purok-search { transition: border-color .2s, box-shadow .2s; }
+.tools input:focus, .purok-search:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 4px rgba(26,122,76,.1); }
+
+/* sidebar: gentle hover */
+.side-btn:not(.active):hover { background: #eef6f0; }
+
+/* purok tabs */
+.purok-tab { box-shadow: 0 1px 3px rgba(20,60,40,.06); }
+
 /* Trash */
 .trash-hero { display: flex; align-items: center; gap: 16px; padding: 18px 22px; border-radius: 18px; color: #fff; margin-bottom: 16px;
   background: linear-gradient(135deg, #7f1d1d 0%, #c62828 55%, #ef5350 100%); box-shadow: 0 10px 24px rgba(198,40,40,.25); position: relative; overflow: hidden; }
