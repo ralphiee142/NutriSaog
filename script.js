@@ -175,6 +175,144 @@ if (registerForm) {
   });
 }
 
+
+// ==================== GOOGLE LOGIN + FORGOT PASSWORD (Supabase Auth OTP) ====================
+// Staff accounts stay in the "users" table. Google / OTP are only used to PROVE who you are:
+// the verified Google email must already be linked to a staff account (see Account Settings).
+const authReady = () => USE_SUPABASE && typeof getSupabase === "function" && typeof isSupabaseConfigured === "function" && isSupabaseConfigured();
+const $id = (i) => document.getElementById(i);
+const digitsOnly = (v) => String(v || "").replace(/\D/g, "");
+function maskEmail(e) { const [a, b] = String(e).split("@"); return (a || "").slice(0, 2) + "***@" + (b || ""); }
+function authErr(e) {
+  const m = String((e && e.message) || e || "Something went wrong.");
+  if (e && e.code === "42703") return "The users table needs the 'email' column. Run the SQL for recovery options in Supabase first.";
+  if (/rate limit|too many|seconds/i.test(m)) return "Please wait a bit before asking for another code.\n\n" + m;
+  return m;
+}
+async function lookupUser(field, val) {
+  const { data, error } = await getSupabase().from("users").select("*").eq(field, val).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+async function authSignOutLocal() { try { await getSupabase().auth.signOut({ scope: "local" }); } catch {} }
+function loginAs(user) { localStorage.setItem("nt_current", JSON.stringify(user)); location.href = "dashboard.html"; }
+function showPanel(id) {
+  document.querySelectorAll(".auth-form").forEach((f) => f.classList.remove("active"));
+  $id(id)?.classList.add("active");
+}
+function cooldown(btn, secs) {
+  if (!btn) return;
+  const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+  btn.disabled = true;
+  let n = secs;
+  const t = setInterval(() => {
+    n--;
+    if (n <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = label; }
+    else btn.textContent = `${label} (${n}s)`;
+  }, 1000);
+  btn.textContent = `${label} (${n}s)`;
+}
+const step = (ids, show) => ids.forEach((i) => $id(i)?.classList.toggle("d-none", i !== show));
+
+if (loginForm) {
+  document.querySelectorAll("[data-back]").forEach((b) => b.addEventListener("click", () => {
+    document.querySelector("[data-tab=login]")?.click();
+  }));
+
+  // ---- Continue with Google ----
+  $id("googleBtn")?.addEventListener("click", async () => {
+    if (!authReady()) return alert("Supabase is not configured.");
+    sessionStorage.setItem("nt_oauth", "login");
+    const { error } = await getSupabase().auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: new URL("index.html", location.href).href, queryParams: { prompt: "select_account" } },
+    });
+    if (error) { sessionStorage.removeItem("nt_oauth"); alert(authErr(error)); }
+  });
+  // coming back from Google
+  (async function handleOAuthReturn() {
+    if (!authReady() || sessionStorage.getItem("nt_oauth") !== "login") return;
+    sessionStorage.removeItem("nt_oauth");
+    try {
+      const sb = getSupabase();
+      const { data: { session } } = await sb.auth.getSession();
+      history.replaceState(null, "", location.pathname);
+      const email = String(session?.user?.email || "").toLowerCase();
+      await authSignOutLocal();
+      if (!email) return alert("Google sign-in was cancelled or failed.");
+      const user = await lookupUser("email", email);
+      if (!user) return alert(`The Google account ${email} is not linked to any staff account.\n\nLog in with your username and password, then link Google in Account Settings.`);
+      loginAs(user);
+    } catch (e) { alert(authErr(e)); }
+  })();
+
+  // ---- Forgot password ----
+  let fg = { step: 1, user: null, value: null };
+  const FG_STEPS = ["fgStep1", "fgStep3", "fgStep4"];
+  $id("forgotLink")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    fg = { step: 1, user: null, value: null };
+    ["fgUser", "fgCode", "fgPass", "fgPass2"].forEach((i) => ($id(i).value = ""));
+    step(FG_STEPS, "fgStep1");
+    showPanel("forgotForm");
+    $id("fgUser").value = $id("loginUser").value.trim();
+  });
+  async function fgFind() {
+    if (!authReady()) return alert("Password reset needs the online database (Supabase).");
+    const u = $id("fgUser").value.trim();
+    if (!u) return alert("Enter your username.");
+    try {
+      const user = await lookupUser("username", u);
+      if (!user) return alert("Username not found.");
+      if (!user.email)
+        return alert("This account has no linked Google email, so a code can't be sent.\n\nPlease ask the barangay admin to reset your password.");
+      fg.user = user;
+      await fgSend();
+    } catch (e) { alert(authErr(e)); }
+  }
+  async function fgSend() {
+    if (!fg.user) return;
+    fg.value = String(fg.user.email).toLowerCase();
+    try {
+      const { error } = await getSupabase().auth.signInWithOtp({ email: fg.value });
+      if (error) throw error;
+      $id("fgSentTo").textContent = maskEmail(fg.value);
+      fg.step = 3; step(FG_STEPS, "fgStep3"); $id("fgCode").focus();
+      cooldown($id("fgResendBtn"), 60);
+    } catch (e) { alert(authErr(e)); }
+  }
+  async function fgVerify() {
+    const token = digitsOnly($id("fgCode").value);
+    if (token.length < 6) return alert("Enter the code we sent you.");
+    try {
+      const { data, error } = await getSupabase().auth.verifyOtp({ email: fg.value, token, type: "email" });
+      if (error) throw error;
+      if (String(data?.user?.email || "").toLowerCase() !== fg.value) throw new Error("Verification failed.");
+      await authSignOutLocal();
+      fg.step = 4; step(FG_STEPS, "fgStep4"); $id("fgPass").focus();
+    } catch (e) { alert(authErr(e)); }
+  }
+  async function fgReset() {
+    const p = $id("fgPass").value, p2 = $id("fgPass2").value;
+    if (p.length < 6) return alert("Password must be at least 6 characters.");
+    if (p !== p2) return alert("Passwords do not match!");
+    try {
+      const { error } = await getSupabase().from("users").update({ password: p }).eq("username", fg.user.username);
+      if (error) throw error;
+      const uname = fg.user.username;
+      fg = { step: 1, user: null, value: null };
+      alert("Password updated! You can now log in with your new password.");
+      document.querySelector("[data-tab=login]")?.click();
+      $id("loginUser").value = uname; $id("loginPass").value = ""; $id("loginPass").focus();
+    } catch (e) { alert(authErr(e)); }
+  }
+  $id("forgotForm")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    [null, fgFind, fgSend, fgVerify, fgReset][fg.step]();
+  });
+  $id("fgResendBtn")?.addEventListener("click", fgSend);
+}
+
 // ==================== DASHBOARD PART ====================
 const cur = localStorage.getItem("nt_current");
 const isDashboard = !!document.getElementById("userDisplay");
@@ -1103,10 +1241,81 @@ window.closeLogoutModal = window.closeLogoutModal || function () { byId("logoutM
 window.confirmLogout = window.confirmLogout || function () { localStorage.removeItem("nt_current"); location.href = "index.html"; };
 
 window.showAccountModal = window.showAccountModal || function () {
+  loadRecovery();
   byId("currentUserLabel").textContent = getCurrentUsernameGlobal();
   ["newUsername", "newPassword", "newPassword2"].forEach((i) => (byId(i).value = ""));
   byId("accountModal").classList.add("show");
 };
+
+// ---- Recovery options (Google) in Account Settings ----
+let recov = { email: "" };
+function renderRecovery() {
+  const g = byId("recGoogleStatus");
+  if (!g) return;
+  g.textContent = recov.email ? "Linked: " + recov.email : "Not linked";
+  g.classList.toggle("linked", !!recov.email);
+  byId("recGoogleBtn").classList.toggle("d-none", !!recov.email);
+  byId("recGoogleUnlink").classList.toggle("d-none", !recov.email);
+}
+async function loadRecovery() {
+  recov = { email: "" };
+  try {
+    if (authReady()) {
+      const { data } = await getSupabase().from("users").select("email").eq("username", getCurrentUsernameGlobal()).maybeSingle();
+      if (data) recov = { email: data.email || "" };
+    }
+  } catch (e) { console.warn("recovery load", e); }
+  renderRecovery();
+  return recov;
+}
+function saveRecoveryLocal() {
+  const cu = getCurrentUserGlobal() || {};
+  cu.email = recov.email || null;
+  localStorage.setItem("nt_current", JSON.stringify(cu));
+}
+async function setRecovery(fields) {
+  const { error } = await getSupabase().from("users").update(fields).eq("username", getCurrentUsernameGlobal());
+  if (error) throw error;
+  Object.assign(recov, fields); saveRecoveryLocal(); renderRecovery();
+}
+window.linkGoogleAccount = async function () {
+  if (!authReady()) return alert("Supabase is not configured.");
+  sessionStorage.setItem("nt_oauth", "link");
+  const { error } = await getSupabase().auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: new URL("dashboard.html", location.href).href, queryParams: { prompt: "select_account" } },
+  });
+  if (error) { sessionStorage.removeItem("nt_oauth"); alert(authErr(error)); }
+};
+window.unlinkGoogleAccount = async function () {
+  if (!confirm("Unlink this Google account? You won't be able to use it to sign in or reset your password.")) return;
+  try { await setRecovery({ email: null }); } catch (e) { alert(authErr(e)); }
+};
+window.dismissRecoveryBanner = function () { sessionStorage.setItem("nt_rb_dismiss", "1"); byId("recoveryBanner")?.classList.add("d-none"); };
+async function checkRecoveryBanner() {
+  if (!authReady() || sessionStorage.getItem("nt_rb_dismiss")) return;
+  await loadRecovery();
+  if (!recov.email) byId("recoveryBanner")?.classList.remove("d-none");
+}
+// coming back from Google after pressing "Link Google"
+async function handleLinkReturn() {
+  if (!authReady() || sessionStorage.getItem("nt_oauth") !== "link") return;
+  sessionStorage.removeItem("nt_oauth");
+  try {
+    const { data: { session } } = await getSupabase().auth.getSession();
+    history.replaceState(null, "", location.pathname);
+    const email = String(session?.user?.email || "").toLowerCase();
+    await authSignOutLocal();
+    if (!email) return alert("Google sign-in was cancelled or failed.");
+    const owner = await lookupUser("email", email);
+    if (owner && owner.username !== getCurrentUsernameGlobal()) return alert(`${email} is already linked to another staff account.`);
+    await setRecovery({ email });
+    byId("recoveryBanner")?.classList.add("d-none");
+    showAccountModal();
+    alert("Google account linked: " + email);
+  } catch (e) { alert(authErr(e)); }
+}
+
 window.closeAccountModal = window.closeAccountModal || function () { byId("accountModal").classList.remove("show"); };
 
 window.saveAccountChanges = window.saveAccountChanges || async function () {
@@ -1170,6 +1379,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!isDashboard) return;
   refreshAll();
   updateTrashBadge();
+  handleLinkReturn().then(checkRecoveryBanner);
   syncAllToSupabase();                       // load shared records from Supabase
   setInterval(() => pullFromSupabase(), 15000); // pick up other devices' changes every 15s
   document.addEventListener("visibilitychange", () => { if (!document.hidden) pullFromSupabase(); });
