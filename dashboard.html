@@ -49,7 +49,7 @@
       </aside>
       <main class="content">
         <div id="recoveryBanner" class="recovery-banner d-none">
-          <span>🔐 Add a recovery Google account so you can reset your password if you forget it.</span>
+          <span>🔐 Add a recovery Google account or phone number so you can reset your password if you forget it.</span>
           <span class="rb-actions">
             <button type="button" class="rb-set" onclick="showAccountModal()">Set up</button>
             <button type="button" class="rb-x" onclick="dismissRecoveryBanner()" aria-label="Dismiss">✕</button>
@@ -339,13 +339,27 @@
         </div>
         <div class="recovery-box">
           <div class="rec-title">🔐 Recovery &amp; sign-in options</div>
-          <p class="rec-sub">Link a Google account to reset a forgotten password with a one-time code, and to sign in without typing your password.</p>
+          <p class="rec-sub">Link a Google account or phone number to reset a forgotten password with a one-time code, and to sign in without typing your password.</p>
           <div class="rec-row">
             <div class="rec-info"><b>Google</b><span id="recGoogleStatus">Not linked</span></div>
             <div class="rec-actions">
               <button type="button" class="btn-outline rec-btn" id="recGoogleBtn" onclick="linkGoogleAccount()">Link Google</button>
               <button type="button" class="btn-outline rec-btn rec-unlink d-none" id="recGoogleUnlink" onclick="unlinkGoogleAccount()">Unlink</button>
             </div>
+          </div>
+          <div class="rec-row">
+            <div class="rec-info"><b>Phone number</b><span id="recPhoneStatus">Not linked</span></div>
+            <div class="rec-actions">
+              <button type="button" class="btn-outline rec-btn rec-unlink d-none" id="recPhoneUnlink" onclick="unlinkPhone()">Unlink</button>
+            </div>
+          </div>
+          <div id="recPhoneAdd" class="rec-add">
+            <input type="tel" id="recPhone" class="account-input" placeholder="09XX XXX XXXX or +639XXXXXXXXX" />
+            <button type="button" class="btn-outline rec-btn" onclick="sendLinkPhoneCode()">Send code</button>
+          </div>
+          <div id="recPhoneCodeWrap" class="rec-add d-none">
+            <input type="text" id="recPhoneCode" class="account-input otp-input" inputmode="numeric" maxlength="10" placeholder="Enter code" />
+            <button type="button" class="btn-primary rec-btn" onclick="verifyLinkPhone()">Verify &amp; link</button>
           </div>
         </div>
         <div class="account-actions">
