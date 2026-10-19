@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>NutriTrack Saog - Dashboard</title>
     <link rel="stylesheet" href="style.css" />
     <link
@@ -25,21 +25,21 @@
         <span id="dbStatus" class="db-status d-none">📦 Loading DB...</span>
         <span id="userDisplay" class="user-display"></span>
         <button onclick="showAccountModal()" class="btn-outline btn-account">
-          ⚙️ Account
+          ⚙️ <span class="btn-label">Account</span>
         </button>
         <button onclick="showLogoutModal()" class="btn-outline btn-logout">
-          ↪️ Logout
+          ↪️ <span class="btn-label">Logout</span>
         </button>
       </div>
     </header>
     <div class="layout">
       <aside class="sidebar">
         <button class="side-btn active" data-view="dashboard">
-          📊 Dashboard
+          <span class="si">📊</span><span class="sl">Dashboard</span>
         </button>
-        <button class="side-btn" data-view="add">➕ Add Child Record</button>
-        <button class="side-btn" data-view="records">📋 All Records</button>
-        <button class="side-btn" data-view="purok">📍 Purok Monitoring</button>
+        <button class="side-btn" data-view="add"><span class="si">➕</span><span class="sl">Add Child Record</span></button>
+        <button class="side-btn" data-view="records"><span class="si">📋</span><span class="sl">All Records</span></button>
+        <button class="side-btn" data-view="purok"><span class="si">📍</span><span class="sl">Purok Monitoring</span></button>
         <div class="side-info">
           <p><b>Office Hours:</b> 7:30AM - 4:00PM</p>
           <p><b>Coverage:</b> 0-59 Months</p>
