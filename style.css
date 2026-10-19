@@ -1233,3 +1233,56 @@ canvas { width: 100% !important; height: auto !important; }
   .dstat h3 { font-size: 24px; }
   .side-btn .sl { font-size: 9px; }
 }
+
+/* =====================================================================
+   LOGIN: forgot password, Google / phone, OTP
+   ===================================================================== */
+.forgot-row { text-align: right; margin: 8px 0 4px; }
+.forgot-row a, .link-btn { color: var(--green); font-size: 12.5px; font-weight: 600; text-decoration: none; background: none; border: 0; cursor: pointer; padding: 0; font-family: inherit; }
+.forgot-row a:hover, .link-btn:hover { text-decoration: underline; }
+.link-btn[disabled] { color: #9aa8a0; cursor: default; text-decoration: none; }
+.back-link { display: block; margin: 16px auto 0; }
+.or-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0 14px; color: #8a978f; font-size: 11.5px; }
+.or-divider::before, .or-divider::after { content: ""; flex: 1; height: 1px; background: #e3e9e5; }
+.social-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-social { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 11px 10px; border: 1.6px solid #dde2df; background: #fff; border-radius: 11px; font-size: 13px; font-weight: 600; color: #333; cursor: pointer; font-family: inherit; transition: border-color .2s, background .2s, box-shadow .2s; }
+.btn-social:hover { border-color: #b9d8c6; background: #f6fbf8; box-shadow: 0 2px 8px rgba(26,122,76,.08); }
+.auth-hint { font-size: 11.5px; color: #6b7b72; background: #f0f8f3; border: 1px solid #d5eadc; border-radius: 10px; padding: 9px 12px; margin-top: 14px; line-height: 1.5; }
+.otp-input { text-align: center; letter-spacing: 6px; font-size: 20px !important; font-weight: 600; }
+.channel-list { display: grid; gap: 8px; margin: 8px 0 4px; }
+.channel { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.6px solid #dde2df; border-radius: 12px; cursor: pointer; transition: border-color .2s, background .2s; }
+.channel:hover { border-color: #b9d8c6; }
+.auth-form .channel { display: flex; align-items: center; gap: 12px; margin-top: 0; }
+.auth-form .channel input { width: 18px !important; height: 18px; margin: 0 !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; background: none; accent-color: #1a7a4c; flex-shrink: 0; }
+.channel.sel { border-color: var(--green); background: #f1faf4; }
+.channel .ch-ico { font-size: 20px; }
+.channel .ch-t { display: block; font-size: 12px; color: #6b7b72; }
+.channel .ch-v { display: block; font-size: 14px; font-weight: 600; color: #222; }
+.auth-form .btn-primary { margin-top: 16px; width: 100%; }
+.auth-form .link-btn + .link-btn { margin-left: 12px; }
+#fgStep3 .link-btn { display: block; margin: 12px auto 0; }
+
+/* account settings: recovery box */
+.modal-account { max-height: 92vh; overflow-y: auto; }
+.recovery-box { background: #f6fbf8; border: 1px solid #d5eadc; border-radius: 12px; padding: 14px; margin: 14px 0 4px; }
+.rec-title { font-size: 13px; font-weight: 700; color: #1a6b44; }
+.rec-sub { font-size: 11.5px; color: #6b7b72; margin: 4px 0 10px; line-height: 1.5; }
+.rec-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px dashed #d5eadc; }
+.rec-info b { display: block; font-size: 12.5px; }
+.rec-info span { font-size: 11.5px; color: #6b7b72; }
+.rec-info span.linked { color: #1a7a4c; font-weight: 600; }
+.rec-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.rec-btn { padding: 7px 12px !important; font-size: 12px !important; border-radius: 9px !important; white-space: nowrap; }
+.rec-unlink { color: #c62828; border-color: #ef9a9a; }
+.rec-add { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+.rec-add .account-input { margin-top: 0; flex: 1; min-width: 0; }
+.recovery-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: #fff8e6; border: 1px solid #ffe2a3; color: #7a5200; padding: 10px 14px; border-radius: 12px; font-size: 12.5px; margin-bottom: 14px; }
+.rb-actions { display: flex; gap: 8px; align-items: center; }
+.rb-set { background: #f5a623; color: #fff; border: 0; padding: 7px 14px; border-radius: 9px; font-weight: 600; cursor: pointer; font-size: 12px; font-family: inherit; }
+.rb-x { background: none; border: 0; color: #a07a2a; cursor: pointer; font-size: 14px; }
+@media (max-width: 800px) {
+  .social-row { grid-template-columns: 1fr; }
+  .auth-right { padding: 24px 20px; }
+  .auth-form input, .auth-form select { font-size: 16px; }
+  .rec-row { flex-wrap: wrap; }
+}
