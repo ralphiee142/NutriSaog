@@ -1305,117 +1305,10 @@ window.closeLogoutModal = window.closeLogoutModal || function () { byId("logoutM
 window.confirmLogout = window.confirmLogout || function () { localStorage.removeItem("nt_current"); location.href = "index.html"; };
 
 window.showAccountModal = window.showAccountModal || function () {
-  loadRecovery();
   byId("currentUserLabel").textContent = getCurrentUsernameGlobal();
   ["newUsername", "newPassword", "newPassword2"].forEach((i) => (byId(i).value = ""));
   byId("accountModal").classList.add("show");
 };
-
-// ---- Recovery options (Google / phone) in Account Settings ----
-let recov = { email: "", phone: "" };
-function renderRecovery() {
-  const g = byId("recGoogleStatus"), p = byId("recPhoneStatus");
-  if (!g || !p) return;
-  g.textContent = recov.email ? "Linked: " + recov.email : "Not linked";
-  g.classList.toggle("linked", !!recov.email);
-  p.textContent = recov.phone ? "Linked: " + recov.phone : "Not linked";
-  p.classList.toggle("linked", !!recov.phone);
-  byId("recGoogleBtn").classList.toggle("d-none", !!recov.email);
-  byId("recGoogleUnlink").classList.toggle("d-none", !recov.email);
-  byId("recPhoneUnlink").classList.toggle("d-none", !recov.phone);
-  byId("recPhoneAdd").classList.toggle("d-none", !!recov.phone);
-  byId("recPhoneCodeWrap").classList.add("d-none");
-}
-async function loadRecovery() {
-  recov = { email: "", phone: "" };
-  try {
-    if (authReady()) {
-      const { data } = await getSupabase().from("users").select("email,phone").eq("username", getCurrentUsernameGlobal()).maybeSingle();
-      if (data) recov = { email: data.email || "", phone: data.phone || "" };
-    }
-  } catch (e) { console.warn("recovery load", e); }
-  renderRecovery();
-  return recov;
-}
-function saveRecoveryLocal() {
-  const cu = getCurrentUserGlobal() || {};
-  cu.email = recov.email || null; cu.phone = recov.phone || null;
-  localStorage.setItem("nt_current", JSON.stringify(cu));
-}
-async function setRecovery(fields) {
-  const { error } = await getSupabase().from("users").update(fields).eq("username", getCurrentUsernameGlobal());
-  if (error) throw error;
-  Object.assign(recov, fields); saveRecoveryLocal(); renderRecovery();
-}
-window.linkGoogleAccount = async function () {
-  if (!authReady()) return alert("Supabase is not configured.");
-  sessionStorage.setItem("nt_oauth", "link");
-  const { error } = await getSupabase().auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: new URL("dashboard.html", location.href).href, queryParams: { prompt: "select_account" } },
-  });
-  if (error) { sessionStorage.removeItem("nt_oauth"); alert(authErr(error)); }
-};
-window.unlinkGoogleAccount = async function () {
-  if (!confirm("Unlink this Google account? You won't be able to use it to sign in or reset your password.")) return;
-  try { await setRecovery({ email: null }); } catch (e) { alert(authErr(e)); }
-};
-let linkPhone = null;
-window.sendLinkPhoneCode = async function () {
-  if (!authReady()) return alert("Supabase is not configured.");
-  const phone = normPhone(byId("recPhone").value);
-  if (!/^\+\d{10,15}$/.test(phone)) return alert("Enter a valid mobile number, e.g. 09171234567.");
-  try {
-    const owner = await lookupUser("phone", phone);
-    if (owner && owner.username !== getCurrentUsernameGlobal()) return alert("This number is already linked to another staff account.");
-    const { error } = await getSupabase().auth.signInWithOtp({ phone });
-    if (error) throw error;
-    linkPhone = phone;
-    byId("recPhoneCodeWrap").classList.remove("d-none");
-    byId("recPhoneCode").value = ""; byId("recPhoneCode").focus();
-  } catch (e) { alert(authErr(e)); }
-};
-window.verifyLinkPhone = async function () {
-  const token = digitsOnly(byId("recPhoneCode").value);
-  if (token.length < 6 || !linkPhone) return alert("Enter the code that was sent to your phone.");
-  try {
-    const { data, error } = await getSupabase().auth.verifyOtp({ phone: linkPhone, token, type: "sms" });
-    if (error) throw error;
-    if (digitsOnly(data?.user?.phone) !== digitsOnly(linkPhone)) throw new Error("Verification failed.");
-    await authSignOutLocal();
-    await setRecovery({ phone: linkPhone });
-    byId("recPhone").value = ""; linkPhone = null;
-    alert("Phone number linked!");
-  } catch (e) { alert(authErr(e)); }
-};
-window.unlinkPhone = async function () {
-  if (!confirm("Unlink this phone number?")) return;
-  try { await setRecovery({ phone: null }); } catch (e) { alert(authErr(e)); }
-};
-window.dismissRecoveryBanner = function () { sessionStorage.setItem("nt_rb_dismiss", "1"); byId("recoveryBanner")?.classList.add("d-none"); };
-async function checkRecoveryBanner() {
-  if (!authReady() || sessionStorage.getItem("nt_rb_dismiss")) return;
-  await loadRecovery();
-  if (!recov.email && !recov.phone) byId("recoveryBanner")?.classList.remove("d-none");
-}
-// coming back from Google after pressing "Link Google"
-async function handleLinkReturn() {
-  if (!authReady() || sessionStorage.getItem("nt_oauth") !== "link") return;
-  sessionStorage.removeItem("nt_oauth");
-  try {
-    const { data: { session } } = await getSupabase().auth.getSession();
-    history.replaceState(null, "", location.pathname);
-    const email = String(session?.user?.email || "").toLowerCase();
-    await authSignOutLocal();
-    if (!email) return alert("Google sign-in was cancelled or failed.");
-    const owner = await lookupUser("email", email);
-    if (owner && owner.username !== getCurrentUsernameGlobal()) return alert(`${email} is already linked to another staff account.`);
-    await setRecovery({ email });
-    byId("recoveryBanner")?.classList.add("d-none");
-    showAccountModal();
-    alert("Google account linked: " + email);
-  } catch (e) { alert(authErr(e)); }
-}
 
 window.closeAccountModal = window.closeAccountModal || function () { byId("accountModal").classList.remove("show"); };
 
@@ -1480,7 +1373,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!isDashboard) return;
   refreshAll();
   updateTrashBadge();
-  handleLinkReturn().then(checkRecoveryBanner);
   syncAllToSupabase();                       // load shared records from Supabase
   setInterval(() => pullFromSupabase(), 15000); // pick up other devices' changes every 15s
   document.addEventListener("visibilitychange", () => { if (!document.hidden) pullFromSupabase(); });
