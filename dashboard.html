@@ -191,24 +191,32 @@
         </section>
 
         <section id="view-trash" class="view">
-          <div class="view-head">
-            <div>
+          <div class="trash-hero">
+            <div class="th-ico">🗑️</div>
+            <div class="th-text">
               <h2>Trash</h2>
-              <small>Deleted child records. They are no longer in the main database &mdash; restore a record to bring it back, or delete it permanently.</small>
+              <p>Deleted child records. They are no longer in the main database &mdash; restore a record to bring it back, or delete it permanently.</p>
             </div>
+            <div class="th-count"><b id="trashCount">0</b><span>in trash</span></div>
           </div>
-          <div class="table-wrap" style="overflow:auto">
-            <table id="trashTable" style="min-width:1100px">
+          <div class="table-wrap trash-wrap" style="overflow:auto">
+            <table id="trashTable" style="min-width:1480px">
               <thead>
-                <tr style="background:#6da8d1;color:#fff">
-                  <th>Full Name of Child</th>
-                  <th>Purok</th>
-                  <th>Name of Mother/Caregiver</th>
-                  <th>Address/Location</th>
-                  <th>Sex</th>
-                  <th>Age (mos)</th>
-                  <th>Deleted By</th>
-                  <th style="min-width:250px">Action</th>
+                <tr>
+                  <th style="min-width:50px">1<br>No.</th>
+                  <th style="min-width:100px">2<br>Purok</th>
+                  <th style="min-width:180px">3<br>Address/Location</th>
+                  <th style="min-width:160px">4<br>Name of Mother/Caregiver</th>
+                  <th style="min-width:160px">5<br>Full Name of Child</th>
+                  <th style="min-width:70px">6<br>IP Group</th>
+                  <th style="min-width:50px">7<br>Sex</th>
+                  <th style="min-width:110px">8<br>Date of Birth</th>
+                  <th style="min-width:110px">9<br>Date Measured</th>
+                  <th style="min-width:70px">10<br>Weight (kg)</th>
+                  <th style="min-width:70px">11<br>Height (cm)</th>
+                  <th style="min-width:70px">12<br>Age in Months</th>
+                  <th style="min-width:150px">Deleted By</th>
+                  <th style="min-width:230px">Action</th>
                 </tr>
               </thead>
               <tbody></tbody>
