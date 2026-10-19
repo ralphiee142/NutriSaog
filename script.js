@@ -602,6 +602,13 @@ function whoCell(user, iso) {
   const t = fmtStamp(iso);
   return `<div class="who-cell"><b>${esc(user)}</b>${t ? `<small>${esc(t)}</small>` : ""}</div>`;
 }
+// Age badge: red if 60 months or older (beyond 0-59 months coverage)
+function ageCell(age) {
+  if (age == null || age === "") return "";
+  return Number(age) >= 60
+    ? `<span class="age-over" title="Beyond 0-59 months coverage">${esc(age)}</span>`
+    : esc(age);
+}
 function renderTable() {
   const tbody = document.querySelector("#recordsTable tbody");
   if (!tbody) return;
@@ -612,7 +619,7 @@ function renderTable() {
     return;
   }
   tbody.innerHTML = list.map((c, i) => `
-    <tr>
+    <tr class="${Number(c.age) >= 60 ? "row-over" : ""}">
       <td data-label="No.">${i + 1}</td>
       <td data-label="Purok">${esc(c.purok)}</td>
       <td data-label="Address" title="${esc(c.address)}"><span class="addr-ellipsis">${esc(c.address)}</span></td>
@@ -624,7 +631,7 @@ function renderTable() {
       <td data-label="Date Measured">${esc(c.date)}</td>
       <td data-label="Weight (kg)">${esc(c.weight)}</td>
       <td data-label="Height (cm)">${esc(c.height)}</td>
-      <td data-label="Age (mos)">${c.age != null ? esc(c.age) : ""}</td>
+      <td data-label="Age (mos)">${ageCell(c.age)}</td>
       <td data-label="Added by">${whoCell(c.created_by, c.created_at)}</td>
       <td data-label="Last updated by">${whoCell(c.updated_by, c.updated_at)}</td>
       <td>${actionButtons(c.id)}</td>
@@ -826,7 +833,7 @@ function renderPurok() {
     <tr>
       <td data-label="Name"><b>${esc(c.name)}</b></td>
       <td data-label="Sex">${sexBadge(c.gender)}</td>
-      <td data-label="Age (mos)">${c.age != null ? esc(c.age) : ""}</td>
+      <td data-label="Age (mos)">${ageCell(c.age)}</td>
       <td data-label="Address">${esc(c.address)}</td>
       <td data-label="Weight (kg)">${esc(c.weight)}</td>
       <td data-label="Height (cm)">${esc(c.height)}</td>
@@ -874,7 +881,8 @@ function saveUpdateChild(e) {
   if (e) e.preventDefault();
   const age = parseInt(byId("uAge").value, 10);
   if (isNaN(age)) return alert("Please enter the Age in Months.");
-  if (age < 0 || age > 59) return alert("Age must be 0-59 months.");
+  if (age < 0) return alert("Age cannot be negative.");
+  if (age > 59 && !confirm("The child is already " + age + " months old (beyond the 0-59 months coverage). Save anyway?")) return;
   const list = getChildren();
   const idx = list.findIndex((x) => x.id === byId("uEditId").value);
   if (idx < 0) return;
@@ -1061,7 +1069,7 @@ function renderTrash() {
     <td data-label="Date Measured">${esc(c.date || "")}</td>
     <td data-label="Weight (kg)">${c.weight != null && c.weight !== "" ? esc(c.weight) : ""}</td>
     <td data-label="Height (cm)">${c.height != null && c.height !== "" ? esc(c.height) : ""}</td>
-    <td data-label="Age (mos)">${c.age != null ? esc(c.age) : ""}</td>
+    <td data-label="Age (mos)">${ageCell(c.age)}</td>
     <td data-label="Deleted by">${deletedCell(c.deleted_by, c.deleted_at)}</td>
     <td>
       <button class="btn-outline btn-action act-restore" onclick="restoreFromTrash('${esc(c.id)}')">♻️ Restore</button>
