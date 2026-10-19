@@ -585,7 +585,25 @@ window.resetForm = resetForm;
 // ==================== ALL RECORDS ====================
 function getFilteredRecords() {
   const q = (byId("searchInput")?.value || "").toLowerCase().trim();
-  return getChildren().filter((c) => !q || `${c.name} ${c.mother} ${c.purok} ${c.address}`.toLowerCase().includes(q));
+  return getChildren().filter((c) => (!window.showOver60Only || Number(c.age) >= 60) && (!q || `${c.name} ${c.mother} ${c.purok} ${c.address}`.toLowerCase().includes(q)));
+}
+
+// ==================== 60+ MONTHS ALERT ====================
+window.showOver60Only = false;
+function toggleOver60() { window.showOver60Only = !window.showOver60Only; renderTable(); }
+window.toggleOver60 = toggleOver60;
+function renderAgeAlert() {
+  const over = getChildren().filter((c) => c.age != null && c.age !== "" && Number(c.age) >= 60);
+  const badge = byId("ageBadge");
+  if (badge) { badge.textContent = over.length; badge.classList.toggle("d-none", !over.length); }
+  const box = byId("ageAlert");
+  if (!box) return;
+  if (!over.length) { box.classList.add("d-none"); box.innerHTML = ""; window.showOver60Only = false; return; }
+  const names = over.slice(0, 3).map((c) => esc(c.name)).join(", ") + (over.length > 3 ? ` +${over.length - 3} more` : "");
+  box.classList.remove("d-none");
+  box.innerHTML = `<span class="age-alert-ico">⚠️</span>
+    <div class="age-alert-txt"><b>${over.length} ${over.length === 1 ? "child has" : "children have"} reached 60 months or older</b> (beyond 0-59 months coverage)<br><small>${names}</small></div>
+    <button type="button" class="age-alert-btn" onclick="toggleOver60()">${window.showOver60Only ? "Show all records" : "Show only these"}</button>`;
 }
 function actionButtons(id) {
   return `<button class="btn-outline btn-action act-edit" title="Update record" onclick="editChild('${id}')">✏️ Update</button>
@@ -606,12 +624,13 @@ function whoCell(user, iso) {
 function ageCell(age) {
   if (age == null || age === "") return "";
   return Number(age) >= 60
-    ? `<span class="age-over" title="Beyond 0-59 months coverage">${esc(age)}</span>`
+    ? `<span class="age-over" title="Beyond 0-59 months coverage">⚠ ${esc(age)}</span>`
     : esc(age);
 }
 function renderTable() {
   const tbody = document.querySelector("#recordsTable tbody");
   if (!tbody) return;
+  renderAgeAlert();
   const list = getFilteredRecords();
   const rc = byId("recCount"); if (rc) rc.textContent = list.length;
   if (!list.length) {
