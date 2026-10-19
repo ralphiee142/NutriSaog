@@ -239,6 +239,8 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (m) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
 }
+function sexBadge(g) { const l = sexLetter(g); return l ? `<span class="sx ${l === "M" ? "sx-m" : "sx-f"}">${l}</span>` : ""; }
+function ipBadge(v) { const y = String(v || "").toUpperCase() === "YES"; return `<span class="ipb ${y ? "ipb-yes" : ""}">${y ? "YES" : "NO"}</span>`; }
 function sexLetter(g) { return (g || "").toString().charAt(0).toUpperCase(); }
 function sexFull(g) { return sexLetter(g) === "F" ? "Female" : sexLetter(g) === "M" ? "Male" : ""; }
 function computeAgeInMonths(dobStr, measuredStr) { // only used to fill age of very old records that have none
@@ -402,6 +404,7 @@ function renderTable() {
   const tbody = document.querySelector("#recordsTable tbody");
   if (!tbody) return;
   const list = getFilteredRecords();
+  const rc = byId("recCount"); if (rc) rc.textContent = list.length;
   if (!list.length) {
     tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:20px;color:#888">No records found.</td></tr>';
     return;
@@ -413,8 +416,8 @@ function renderTable() {
       <td data-label="Address" title="${esc(c.address)}"><span class="addr-ellipsis">${esc(c.address)}</span></td>
       <td data-label="Mother / Caregiver">${esc(c.mother)}</td>
       <td data-label="Child"><b>${esc(c.name)}</b></td>
-      <td data-label="IP Group">${esc(c.ip || "NO")}</td>
-      <td data-label="Sex">${sexLetter(c.gender)}</td>
+      <td data-label="IP Group">${ipBadge(c.ip)}</td>
+      <td data-label="Sex">${sexBadge(c.gender)}</td>
       <td data-label="Date of Birth">${esc(c.dob)}</td>
       <td data-label="Date Measured">${esc(c.date)}</td>
       <td data-label="Weight (kg)">${esc(c.weight)}</td>
@@ -620,7 +623,7 @@ function renderPurok() {
   document.querySelector("#purokTable tbody").innerHTML = list.length ? list.map((c) => `
     <tr>
       <td data-label="Name"><b>${esc(c.name)}</b></td>
-      <td data-label="Sex">${sexLetter(c.gender)}</td>
+      <td data-label="Sex">${sexBadge(c.gender)}</td>
       <td data-label="Age (mos)">${c.age != null ? esc(c.age) : ""}</td>
       <td data-label="Address">${esc(c.address)}</td>
       <td data-label="Weight (kg)">${esc(c.weight)}</td>
@@ -850,8 +853,8 @@ function renderTrash() {
     <td data-label="Address" title="${esc(c.address)}">${esc(c.address)}</td>
     <td data-label="Mother / Caregiver">${esc(c.mother)}</td>
     <td data-label="Child"><b>${esc(c.name)}</b></td>
-    <td data-label="IP Group">${esc(c.ip || "NO")}</td>
-    <td data-label="Sex">${esc(sexLetter(c.gender))}</td>
+    <td data-label="IP Group">${ipBadge(c.ip)}</td>
+    <td data-label="Sex">${sexBadge(c.gender)}</td>
     <td data-label="Date of Birth">${esc(c.dob || "")}</td>
     <td data-label="Date Measured">${esc(c.date || "")}</td>
     <td data-label="Weight (kg)">${c.weight != null && c.weight !== "" ? esc(c.weight) : ""}</td>
