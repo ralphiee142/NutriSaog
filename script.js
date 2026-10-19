@@ -383,8 +383,8 @@ function getFilteredRecords() {
   return getChildren().filter((c) => !q || `${c.name} ${c.mother} ${c.purok} ${c.address}`.toLowerCase().includes(q));
 }
 function actionButtons(id) {
-  return `<button class="btn-outline btn-action btn-update" title="Update record" onclick="editChild('${id}')">✏️ Update</button>
-          <button class="btn-outline btn-action btn-del" title="Delete record" onclick="deleteChild('${id}')">🗑️ Delete</button>`;
+  return `<button class="btn-outline btn-action act-edit" title="Update record" onclick="editChild('${id}')">✏️ Update</button>
+          <button class="btn-outline btn-action act-del" title="Delete record" onclick="deleteChild('${id}')">🗑️ Delete</button>`;
 }
 function fmtStamp(iso) {
   if (!iso) return "";
@@ -407,20 +407,20 @@ function renderTable() {
   }
   tbody.innerHTML = list.map((c, i) => `
     <tr>
-      <td>${i + 1}</td>
-      <td>${esc(c.purok)}</td>
-      <td title="${esc(c.address)}"><span class="addr-ellipsis">${esc(c.address)}</span></td>
-      <td>${esc(c.mother)}</td>
-      <td><b>${esc(c.name)}</b></td>
-      <td>${esc(c.ip || "NO")}</td>
-      <td>${sexLetter(c.gender)}</td>
-      <td>${esc(c.dob)}</td>
-      <td>${esc(c.date)}</td>
-      <td>${esc(c.weight)}</td>
-      <td>${esc(c.height)}</td>
-      <td>${c.age != null ? esc(c.age) : ""}</td>
-      <td>${whoCell(c.created_by, c.created_at)}</td>
-      <td>${whoCell(c.updated_by, c.updated_at)}</td>
+      <td data-label="No.">${i + 1}</td>
+      <td data-label="Purok">${esc(c.purok)}</td>
+      <td data-label="Address" title="${esc(c.address)}"><span class="addr-ellipsis">${esc(c.address)}</span></td>
+      <td data-label="Mother / Caregiver">${esc(c.mother)}</td>
+      <td data-label="Child"><b>${esc(c.name)}</b></td>
+      <td data-label="IP Group">${esc(c.ip || "NO")}</td>
+      <td data-label="Sex">${sexLetter(c.gender)}</td>
+      <td data-label="Date of Birth">${esc(c.dob)}</td>
+      <td data-label="Date Measured">${esc(c.date)}</td>
+      <td data-label="Weight (kg)">${esc(c.weight)}</td>
+      <td data-label="Height (cm)">${esc(c.height)}</td>
+      <td data-label="Age (mos)">${c.age != null ? esc(c.age) : ""}</td>
+      <td data-label="Added by">${whoCell(c.created_by, c.created_at)}</td>
+      <td data-label="Last updated by">${whoCell(c.updated_by, c.updated_at)}</td>
       <td>${actionButtons(c.id)}</td>
     </tr>`).join("");
 }
@@ -618,12 +618,12 @@ function renderPurok() {
   const list = purokList();
   document.querySelector("#purokTable tbody").innerHTML = list.length ? list.map((c) => `
     <tr>
-      <td><b>${esc(c.name)}</b></td>
-      <td>${sexLetter(c.gender)}</td>
-      <td>${c.age != null ? esc(c.age) : ""}</td>
-      <td>${esc(c.address)}</td>
-      <td>${esc(c.weight)}</td>
-      <td>${esc(c.height)}</td>
+      <td data-label="Name"><b>${esc(c.name)}</b></td>
+      <td data-label="Sex">${sexLetter(c.gender)}</td>
+      <td data-label="Age (mos)">${c.age != null ? esc(c.age) : ""}</td>
+      <td data-label="Address">${esc(c.address)}</td>
+      <td data-label="Weight (kg)">${esc(c.weight)}</td>
+      <td data-label="Height (cm)">${esc(c.height)}</td>
       <td>${actionButtons(c.id)}</td>
     </tr>`).join("")
     : `<tr><td colspan="7" style="text-align:center;padding:20px;color:#888">Walang records sa ${activePurok}.</td></tr>`;
