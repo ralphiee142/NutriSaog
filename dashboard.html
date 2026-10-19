@@ -40,6 +40,7 @@
         <button class="side-btn" data-view="add"><span class="si">➕</span><span class="sl">Add Child Record</span></button>
         <button class="side-btn" data-view="records"><span class="si">📋</span><span class="sl">All Records</span></button>
         <button class="side-btn" data-view="purok"><span class="si">📍</span><span class="sl">Purok Monitoring</span></button>
+        <button class="side-btn" data-view="trash"><span class="si">🗑️</span><span class="sl">Trash</span><span id="trashBadge" class="trash-badge d-none">0</span></button>
         <div class="side-info">
           <p><b>Office Hours:</b> 7:30AM - 4:00PM</p>
           <p><b>Coverage:</b> 0-59 Months</p>
@@ -189,6 +190,32 @@
           </div>
         </section>
 
+        <section id="view-trash" class="view">
+          <div class="view-head">
+            <div>
+              <h2>Trash</h2>
+              <small>Deleted child records. They are no longer in the main database &mdash; restore a record to bring it back, or delete it permanently.</small>
+            </div>
+          </div>
+          <div class="table-wrap" style="overflow:auto">
+            <table id="trashTable" style="min-width:1100px">
+              <thead>
+                <tr style="background:#6da8d1;color:#fff">
+                  <th>Full Name of Child</th>
+                  <th>Purok</th>
+                  <th>Name of Mother/Caregiver</th>
+                  <th>Address/Location</th>
+                  <th>Sex</th>
+                  <th>Age (mos)</th>
+                  <th>Deleted By</th>
+                  <th style="min-width:250px">Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
         <section id="view-purok" class="view">
           <h2>Purok Monitoring</h2>
           <div class="purok-header">
@@ -247,11 +274,22 @@
 
     <div class="modal-overlay" id="deleteModal">
       <div class="modal">
-        <h3>Delete Record?</h3>
+        <h3>Move to Trash?</h3>
         <p id="deleteMsg">Are you sure you want to delete this child record?</p>
         <div class="modal-actions">
           <button class="btn-outline" onclick="closeDeleteModal()">Cancel</button>
-          <button class="btn-delete" onclick="confirmDelete()">Yes, Delete</button>
+          <button class="btn-delete" onclick="confirmDelete()">Yes, Move to Trash</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="permDeleteModal">
+      <div class="modal">
+        <h3>Delete Permanently?</h3>
+        <p id="permDeleteMsg">This cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="closePermDeleteModal()">Cancel</button>
+          <button class="btn-delete" onclick="confirmPermDelete()">Yes, Delete Permanently</button>
         </div>
       </div>
     </div>
