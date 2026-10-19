@@ -79,9 +79,11 @@
         </section>
 
         <section id="view-add" class="view">
-          <h3 style="margin-bottom:10px">Add Child Information</h3>
+          <h2>Add Child Information</h2>
+          <p class="view-sub">Fill in the details below. Fields marked with <b>*</b> are required.</p>
           <form id="childForm" class="form-grid eopt-grid">
             <input type="hidden" id="editId" />
+            <div class="full fsec"><span class="fi">📍</span>Residence</div>
             <div>
               <label>1. No. (Auto)</label><input type="text" id="cNo" readonly placeholder="Auto"/>
             </div>
@@ -101,6 +103,7 @@
               <label>3. Address or Location of Child's Residence (Block #, Area) *</label>
               <input type="text" id="cAddress" required placeholder="e.g. Block 2, Phase 1"/>
             </div>
+            <div class="full fsec"><span class="fi">👨‍👩‍👧</span>Family &amp; Child</div>
             <div>
               <label>4. Name of Mother or Caregiver *</label>
               <input type="text" id="cMother" required placeholder="Surname, First Name - e.g. WATIWAT, MELANIE"/>
@@ -125,6 +128,7 @@
                 <option value="Female">Female</option>
               </select>
             </div>
+            <div class="full fsec"><span class="fi">📏</span>Dates &amp; Measurements</div>
             <div>
               <label>8. Date of Birth *</label>
               <input type="date" id="cDOB" required/>
@@ -155,7 +159,7 @@
         <section id="view-records" class="view">
           <div class="view-head">
             <div>
-              <h2>All Records</h2>
+              <h2>All Records <span class="count-chip" id="recCount">0</span></h2>
               <small>Barangay: SAOG | Municipality: MARILAO | Province: Bulacan | Region: III Central Luzon | Date: 05/05/2026</small>
             </div>
             <div class="tools" style="margin-top:10px">
