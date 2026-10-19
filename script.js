@@ -706,8 +706,9 @@ function deleteChild(id) {
 function closeDeleteModal() { pendingDeleteId = null; byId("deleteModal").classList.remove("show"); }
 function confirmDelete() {
   if (pendingDeleteId) {
-    removeRemote(pendingDeleteId);
-    saveChildren(getChildren().filter((x) => x.id !== pendingDeleteId));
+    const id = pendingDeleteId;
+    saveChildren(getChildren().filter((x) => x.id !== id));
+    removeRemote(id);
   }
   closeDeleteModal();
   refreshAll();
@@ -769,9 +770,17 @@ function sbError(err) {
   console.error("Supabase sync error:", err);
   setDbStatus(false, "⚠️ Supabase: " + (err && err.message ? err.message : err));
 }
+// ---- shared-database logic: Supabase is the single source of truth for ALL devices ----
+let pendingOps = 0;   // writes in flight; we don't pull while one is running (would overwrite fresh edits)
+let pulling = false;
+function getSyncedSet() { try { return new Set(JSON.parse(localStorage.getItem("nt_synced_ids") || "[]")); } catch { return new Set(); } }
+function saveSyncedSet(set) { try { localStorage.setItem("nt_synced_ids", JSON.stringify([...set])); } catch {} }
+function markSynced(id) { const st = getSyncedSet(); st.add(id); saveSyncedSet(st); }
+
 async function syncChild(c) {
   const sb = sbClient();
   if (!sb || !c) return;
+  pendingOps++;
   try {
     let { error } = await sb.from("children").upsert(childToRow(c), { onConflict: "local_id" });
     if (error && sbAuditOK() && isAuditColErr(error)) {
@@ -779,64 +788,121 @@ async function syncChild(c) {
       ({ error } = await sb.from("children").upsert(childToRow(c), { onConflict: "local_id" }));
     }
     if (error) throw error;
-    setDbStatus(true, "☁️ Saved to Supabase");
+    markSynced(c.id);
+    setDbStatus(true, "Saved to Supabase");
   } catch (e) { sbError(e); }
+  finally { pendingOps--; }
 }
 async function removeRemote(localId) {
   const sb = sbClient();
   if (!sb || !localId) return;
+  pendingOps++;
   try {
     const { error } = await sb.from("children").delete().eq("local_id", localId);
     if (error) throw error;
-    setDbStatus(true, "☁️ Synced");
+    const st = getSyncedSet(); st.delete(localId); saveSyncedSet(st);
+    setDbStatus(true, "Synced");
   } catch (e) { sbError(e); }
+  finally { pendingOps--; }
 }
-// Push everything once per page load. Old Supabase rows (no local_id yet) are matched by
-// name + weight + height and UPDATED, so walang madodoble.
-async function syncAllToSupabase() {
+
+function rowToChild(r, lid, old) {
+  old = old || {};
+  return {
+    id: lid,
+    purok: r.purok || "",
+    address: r.address || "",
+    mother: r.mother || "",
+    name: r.name || "",
+    ip: r.ip || "NO",
+    gender: r.gender || "",
+    dob: r.dob || "",
+    date: r.date_measured || "",
+    weight: r.weight,
+    height: r.height,
+    age: r.age,
+    created_by: r.created_by ?? old.created_by ?? null,
+    created_at: r.created_at ?? old.created_at ?? null,
+    updated_by: r.updated_by ?? old.updated_by ?? null,
+    updated_at: r.updated_at ?? old.updated_at ?? null,
+  };
+}
+
+// Download everything from Supabase and make it the local list (all devices see the same records).
+async function pullFromSupabase(force) {
   const sb = sbClient();
-  if (!sb) { setDbStatus(false, "📴 Offline (local only)"); return; }
+  if (!sb) { setDbStatus(false, "Offline (local only)"); return false; }
+  if (pulling || (pendingOps > 0 && !force)) return false;
+  pulling = true;
   try {
-    const list = getChildren();
-    const { data: remote, error } = await sb.from("children").select("id,local_id,name,weight,height");
+    const { data, error } = await sb.from("children").select("*");
     if (error) throw error;
-    const known = new Set(remote.filter((r) => r.local_id).map((r) => r.local_id));
-    const legacy = remote.filter((r) => !r.local_id);
+
+    // audit columns exist in the table? -> clear the "no audit" flag automatically
+    if (data.length && "updated_by" in data[0]) localStorage.removeItem("nt_sb_no_audit");
+    const auditCols = data.length && "updated_by" in data[0];
+
+    const local = getChildren();
+    const before = JSON.stringify(local);
+    const oldById = new Map(local.map((c) => [c.id, c]));
+    const synced = getSyncedSet();
     const norm = (v) => String(v || "").trim().toLowerCase();
-    const toUpsert = [];
-    for (const c of list) {
-      const row = childToRow(c);
-      if (!known.has(c.id)) {
-        const k = legacy.findIndex((r) => norm(r.name) === norm(c.name)
-          && Math.abs(Number(r.weight) - Number(c.weight)) < 0.01
-          && Math.abs(Number(r.height) - Number(c.height)) < 0.01);
-        if (k >= 0) {
-          const rid = legacy[k].id;
-          legacy.splice(k, 1);
-          let { error: ue } = await sb.from("children").update(row).eq("id", rid);
-          if (ue && sbAuditOK() && isAuditColErr(ue)) {
-            localStorage.setItem("nt_sb_no_audit", "1");
-            const { created_by, created_at, updated_by, updated_at, ...slimRow } = row;
-            ({ error: ue } = await sb.from("children").update(slimRow).eq("id", rid));
-          }
-          if (ue) throw ue;
-          continue;
-        }
+    const remoteIds = new Set();
+    const merged = [];
+    const backfill = [];   // old records whose created_by only exists locally -> push to DB
+
+    // local records that never reached the DB (used to match very old rows without local_id)
+    const unsyncedLocal = local.filter((c) => !synced.has(c.id));
+    const remoteLocalIds = new Set(data.filter((r) => r.local_id).map((r) => r.local_id));
+
+    for (const r of data) {
+      let lid = r.local_id;
+      if (!lid) {
+        const m = unsyncedLocal.find((c) => !remoteLocalIds.has(c.id) && norm(c.name) === norm(r.name)
+          && Math.abs(Number(c.weight) - Number(r.weight)) < 0.01 && Math.abs(Number(c.height) - Number(r.height)) < 0.01);
+        lid = m ? m.id : "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+        const { error: le } = await sb.from("children").update({ local_id: lid }).eq("id", r.id);
+        if (le) lid = "sb_" + r.id;
+        remoteLocalIds.add(lid);
       }
-      toUpsert.push(row);
+      remoteIds.add(lid);
+      const old = oldById.get(lid);
+      const child = rowToChild(r, lid, old);
+      child._rid = r.id;
+      if (auditCols && !r.created_by && old && old.created_by) backfill.push(childToRow(child));
+      merged.push(child);
     }
-    if (toUpsert.length) {
-      let { error: ie } = await sb.from("children").upsert(toUpsert, { onConflict: "local_id" });
-      if (ie && sbAuditOK() && isAuditColErr(ie)) {
-        localStorage.setItem("nt_sb_no_audit", "1");
-        const slim = toUpsert.map(({ created_by, created_at, updated_by, updated_at, ...r }) => r);
-        ({ error: ie } = await sb.from("children").upsert(slim, { onConflict: "local_id" }));
-      }
-      if (ie) throw ie;
+
+    // records only on this device: deleted from another device (drop) or never uploaded (push)
+    const toPush = [];
+    for (const c of local) {
+      if (remoteIds.has(c.id)) continue;
+      if (synced.has(c.id)) continue;       // was in DB before, now gone -> deleted elsewhere
+      merged.push(c);
+      toPush.push(childToRow(c));
     }
-    setDbStatus(true, "☁️ Supabase synced (" + list.length + ")");
-  } catch (e) { sbError(e); }
+    const pushRows = [...toPush, ...backfill];
+    if (pushRows.length) {
+      const { error: pe } = await sb.from("children").upsert(pushRows, { onConflict: "local_id" });
+      if (pe) throw pe;
+    }
+
+    merged.sort((a, b) => String(a.created_at || "").localeCompare(String(b.created_at || ""))
+      || (a._rid || 0) - (b._rid || 0));
+    merged.forEach((c) => { delete c._rid; normalizeChild(c); });
+
+    const newSynced = new Set([...remoteIds, ...toPush.map((r) => r.local_id)]);
+    saveSyncedSet(newSynced);
+
+    const changed = JSON.stringify(merged) !== before;
+    if (changed) saveChildren(merged);
+    setDbStatus(true, "Supabase synced (" + merged.length + ")");
+    if (changed) refreshAll();
+    return true;
+  } catch (e) { sbError(e); return false; }
+  finally { pulling = false; }
 }
+const syncAllToSupabase = () => pullFromSupabase(true);
 
 // ==================== LOGOUT / ACCOUNT ====================
 window.showLogoutModal = window.showLogoutModal || function () { byId("logoutModal").classList.add("show"); };
@@ -910,7 +976,10 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   if (!isDashboard) return;
   refreshAll();
-  syncAllToSupabase();
+  syncAllToSupabase();                       // load shared records from Supabase
+  setInterval(() => pullFromSupabase(), 15000); // pick up other devices' changes every 15s
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) pullFromSupabase(); });
+  window.addEventListener("focus", () => pullFromSupabase());
   const s = byId('searchInput');
   if (s) s.addEventListener('input', renderTable);
 });
