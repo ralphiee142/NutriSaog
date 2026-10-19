@@ -38,7 +38,7 @@
           <span class="si">📊</span><span class="sl">Dashboard</span>
         </button>
         <button class="side-btn" data-view="add"><span class="si">➕</span><span class="sl">Add Child Record</span></button>
-        <button class="side-btn" data-view="records"><span class="si">📋</span><span class="sl">All Records</span></button>
+        <button class="side-btn" data-view="records"><span class="si">📋</span><span class="sl">All Records</span><span id="ageBadge" class="trash-badge d-none" title="Children 60 months or older">0</span></button>
         <button class="side-btn" data-view="purok"><span class="si">📍</span><span class="sl">Purok Monitoring</span></button>
         <button class="side-btn" data-view="trash"><span class="si">🗑️</span><span class="sl">Trash</span><span id="trashBadge" class="trash-badge d-none">0</span></button>
         <div class="side-info">
@@ -168,6 +168,7 @@
               <input type="text" id="searchInput" placeholder="🔍 Search child/mother/purok..." style="min-width:220px"/>
             </div>
           </div>
+          <div id="ageAlert" class="age-alert d-none"></div>
           <div class="table-wrap" style="overflow:auto">
             <table id="recordsTable" style="min-width:1550px">
               <thead>
