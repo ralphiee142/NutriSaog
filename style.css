@@ -885,9 +885,19 @@ canvas { width: 100% !important; height: auto !important; }
 /* Center table content */
 #recordsTable th, #recordsTable td,
 #purokTable th, #purokTable td,
-#feedingTable th, #feedingTable td {
+#feedingTable th, #feedingTable td,
+#trashTable th, #trashTable td {
   text-align: center;
   vertical-align: middle;
+}
+/* Address, Mother/Caregiver and Child name: left-aligned (not centered) */
+#recordsTable th:nth-child(3), #recordsTable td:nth-child(3),
+#recordsTable th:nth-child(4), #recordsTable td:nth-child(4),
+#recordsTable th:nth-child(5), #recordsTable td:nth-child(5),
+#trashTable th:nth-child(1), #trashTable td:nth-child(1),
+#trashTable th:nth-child(3), #trashTable td:nth-child(3),
+#trashTable th:nth-child(4), #trashTable td:nth-child(4) {
+  text-align: left;
 }
 /* ===== Dashboard design ===== */
 .dash-hero { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
@@ -948,6 +958,15 @@ canvas { width: 100% !important; height: auto !important; }
 @media (max-width: 1100px) {
   .dash-grid, .dash-grid2 { grid-template-columns: 1fr; }
 }
+/* Trash */
+.side-btn { position: relative; }
+.trash-badge { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #c62828; color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.trash-badge.d-none { display: none; }
+.act-restore { color: #1a7a4c; border-color: #a5d6b7; }
+.act-restore:hover { background: #e8f5ec; }
+.act-perm { color: #c62828; border-color: #ef9a9a; }
+.act-perm:hover { background: #ffebee; }
+.trash-empty { padding: 36px 12px; text-align: center; color: #8a978f; }
 /* Action buttons with labels */
 .btn-action { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; font-size: 11.5px; font-weight: 600; border-radius: 10px; white-space: nowrap; cursor: pointer; }
 .btn-action.act-edit { color: #e65100; border-color: #ffcc80; }
@@ -997,6 +1016,7 @@ canvas { width: 100% !important; height: auto !important; }
     padding: 7px 2px; text-align: center; border-radius: 12px; white-space: normal;
   }
   .side-btn:hover { transform: none; }
+  .trash-badge { position: absolute; top: 2px; right: 14%; margin: 0; min-width: 17px; height: 17px; font-size: 10px; }
   .side-btn .si { font-size: 19px; line-height: 1; }
   .side-btn .sl { font-size: 10px; line-height: 1.15; font-weight: 600; }
   .side-btn.active::before { display: none; }
@@ -1042,22 +1062,22 @@ canvas { width: 100% !important; height: auto !important; }
     background: transparent; box-shadow: none; border: 0; border-radius: 0;
     overflow: visible; max-height: none !important; margin-top: 8px; flex: none;
   }
-  #recordsTable, #purokTable { min-width: 0 !important; width: 100% !important; display: block; font-size: 13px; }
-  #recordsTable thead, #purokTable thead { display: none; }
-  #recordsTable tbody, #purokTable tbody { display: block; }
-  #recordsTable tr, #purokTable tr {
+  #recordsTable, #purokTable, #trashTable { min-width: 0 !important; width: 100% !important; display: block; font-size: 13px; }
+  #recordsTable thead, #purokTable thead, #trashTable thead { display: none; }
+  #recordsTable tbody, #purokTable tbody, #trashTable tbody { display: block; }
+  #recordsTable tr, #purokTable tr, #trashTable tr {
     display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px 12px;
     background: #fff !important; border: 1px solid #e3ebe6; border-radius: 16px;
     padding: 14px; margin: 0 0 12px; box-shadow: var(--card-shadow);
   }
-  #recordsTable td, #purokTable td {
+  #recordsTable td, #purokTable td, #trashTable td {
     display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
     text-align: left !important; padding: 0 !important; border: 0 !important;
     white-space: normal !important; word-break: break-word;
     min-width: 0 !important; max-width: none !important; font-size: 13px !important;
     background: transparent !important;
   }
-  #recordsTable td[data-label]::before, #purokTable td[data-label]::before {
+  #recordsTable td[data-label]::before, #purokTable td[data-label]::before, #trashTable td[data-label]::before {
     content: attr(data-label); font-size: 10px; font-weight: 700; text-transform: uppercase;
     letter-spacing: .5px; color: #7b8c82;
   }
@@ -1079,20 +1099,25 @@ canvas { width: 100% !important; height: auto !important; }
   #recordsTable td:nth-child(10), #recordsTable td:nth-child(11) { order: 5; }
   #recordsTable td:nth-child(13), #recordsTable td:nth-child(14) { order: 6; }
   #recordsTable td:last-child { order: 7; }
+  /* trash card */
+  #trashTable td { grid-column: span 3; }
+  #trashTable td:nth-child(1) { grid-column: 1 / -1; font-size: 16px !important; padding-bottom: 8px !important; border-bottom: 1px dashed #dfe8e2 !important; }
+  #trashTable td:nth-child(1)::before { display: none; }
+  #trashTable td:nth-child(3), #trashTable td:nth-child(4), #trashTable td:nth-child(7) { grid-column: 1 / -1; }
   /* purok card */
   #purokTable td { grid-column: span 2; }
   #purokTable td:nth-child(1) { grid-column: 1 / -1; font-size: 16px !important; padding-bottom: 8px !important; border-bottom: 1px dashed #dfe8e2 !important; }
   #purokTable td:nth-child(1)::before { display: none; }
   #purokTable td:nth-child(4) { grid-column: 1 / -1; }
   /* action buttons: full-width pair at the bottom of the card */
-  #recordsTable td:last-child, #purokTable td:last-child {
+  #recordsTable td:last-child, #purokTable td:last-child, #trashTable td:last-child {
     grid-column: 1 / -1 !important; flex-direction: row; gap: 10px; margin-top: 4px;
   }
-  #recordsTable td:last-child .btn-action, #purokTable td:last-child .btn-action {
+  #recordsTable td:last-child .btn-action, #purokTable td:last-child .btn-action, #trashTable td:last-child .btn-action {
     flex: 1; justify-content: center; min-height: 42px; font-size: 13px;
   }
   /* "no records" row */
-  #recordsTable td[colspan], #purokTable td[colspan] { grid-column: 1 / -1; align-items: center; text-align: center !important; }
+  #recordsTable td[colspan], #purokTable td[colspan], #trashTable td[colspan] { grid-column: 1 / -1; align-items: center; text-align: center !important; }
 
   /* modals fit the screen and scroll */
   .modal-overlay { padding: 10px; }
