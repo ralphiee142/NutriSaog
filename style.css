@@ -1260,7 +1260,7 @@ canvas { width: 100% !important; height: auto !important; }
 .channel .ch-v { display: block; font-size: 14px; font-weight: 600; color: #222; }
 .auth-form .btn-primary { margin-top: 16px; width: 100%; }
 .auth-form .link-btn + .link-btn { margin-left: 12px; }
-#fgStep3 .link-btn { display: block; margin: 12px auto 0; }
+#phStep2 .link-btn, #fgStep3 .link-btn { display: block; margin: 12px auto 0; }
 
 /* account settings: recovery box */
 .modal-account { max-height: 92vh; overflow-y: auto; }
