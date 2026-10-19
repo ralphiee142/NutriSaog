@@ -74,30 +74,6 @@
               <div class="sub">Distribution by age in months</div>
               <div class="abars" id="dAge"></div>
             </div>
-            <div class="dash-panel">
-              <h4>Sex</h4>
-              <div class="sub">Male vs Female</div>
-              <div class="donut-wrap">
-                <div class="donut" id="dDonut"><div class="donut-in"><b id="dDonutTotal">0</b><small>children</small></div></div>
-                <div class="legend">
-                  <span><i style="background:#1e88e5"></i>Male <b id="dMaleN">0</b></span>
-                  <span><i style="background:#ec407a"></i>Female <b id="dFemaleN">0</b></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="dash-grid2" style="grid-template-columns:1fr">
-            <div class="dash-panel">
-              <h4>Recently Added</h4>
-              <div class="sub">Latest child records</div>
-              <div style="overflow-x:auto">
-                <table class="dash-table">
-                  <thead><tr><th>Name</th><th>Purok</th><th>Sex</th><th>Age (mos)</th><th>Date Measured</th></tr></thead>
-                  <tbody id="dRecent"></tbody>
-                </table>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -188,7 +164,7 @@
             </div>
           </div>
           <div class="table-wrap" style="overflow:auto">
-            <table id="recordsTable" style="min-width:1300px">
+            <table id="recordsTable" style="min-width:1550px">
               <thead>
                 <tr style="background:#6da8d1;color:#fff">
                   <th style="min-width:50px">1<br>No.</th>
@@ -203,7 +179,9 @@
                   <th style="min-width:70px">10<br>Weight (kg)</th>
                   <th style="min-width:70px">11<br>Height (cm)</th>
                   <th style="min-width:70px">12<br>Age in Months</th>
-                  <th style="min-width:120px">Action</th>
+                  <th style="min-width:110px">Added By</th>
+                  <th style="min-width:130px">Last Updated By</th>
+                  <th style="min-width:200px">Action</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -423,6 +401,7 @@
       </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
