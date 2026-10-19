@@ -48,6 +48,13 @@
         </div>
       </aside>
       <main class="content">
+        <div id="recoveryBanner" class="recovery-banner d-none">
+          <span>🔐 Add a recovery Google account so you can reset your password if you forget it.</span>
+          <span class="rb-actions">
+            <button type="button" class="rb-set" onclick="showAccountModal()">Set up</button>
+            <button type="button" class="rb-x" onclick="dismissRecoveryBanner()" aria-label="Dismiss">✕</button>
+          </span>
+        </div>
         <section id="view-dashboard" class="view active">
           <div class="dash-hero">
             <div>
@@ -328,6 +335,17 @@
             <b>📌 Note:</b> Your child records (Total Children, etc.) will
             remain. Only login credentials will change. Old username's records
             will be transferred to new username.
+          </div>
+        </div>
+        <div class="recovery-box">
+          <div class="rec-title">🔐 Recovery &amp; sign-in options</div>
+          <p class="rec-sub">Link a Google account to reset a forgotten password with a one-time code, and to sign in without typing your password.</p>
+          <div class="rec-row">
+            <div class="rec-info"><b>Google</b><span id="recGoogleStatus">Not linked</span></div>
+            <div class="rec-actions">
+              <button type="button" class="btn-outline rec-btn" id="recGoogleBtn" onclick="linkGoogleAccount()">Link Google</button>
+              <button type="button" class="btn-outline rec-btn rec-unlink d-none" id="recGoogleUnlink" onclick="unlinkGoogleAccount()">Unlink</button>
+            </div>
           </div>
         </div>
         <div class="account-actions">
