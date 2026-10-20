@@ -187,7 +187,7 @@
                   <th style="min-width:70px">12<br>Age in Months</th>
                   <th style="min-width:110px">Added By</th>
                   <th style="min-width:130px">Last Updated By</th>
-                  <th style="min-width:300px">Action</th>
+                  <th style="min-width:200px">Action</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -368,23 +368,6 @@
           <button class="btn-delete btn-confirm-delete" onclick="confirmDeleteAccount()" id="confirmDeleteAccountBtn">
             🗑️ Yes, Delete My Account
           </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-overlay" id="historyModal">
-      <div class="modal" style="max-width:760px;width:94%">
-        <button type="button" class="modal-close-x" onclick="closeHistoryModal()" title="Close">✕</button>
-        <h3 id="historyTitle">Measurement History</h3>
-        <div class="table-wrap" style="overflow:auto;max-height:55vh">
-          <table id="historyTable">
-            <thead><tr><th>Date Measured</th><th>Age (mos)</th><th>Weight (kg)</th><th>Height (cm)</th><th>Weight change</th><th>Height change</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="modal-actions">
-          <button class="btn-outline" onclick="closeHistoryModal()">Close</button>
-          <button class="btn-primary" id="historyAddBtn">➕ New Measurement</button>
         </div>
       </div>
     </div>
