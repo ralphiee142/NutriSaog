@@ -1308,3 +1308,8 @@ canvas { width: 100% !important; height: auto !important; }
 .age-alert-txt small { color: #a33; font-size: 12px; }
 .age-alert-btn { background: #d32f2f; color: #fff; border: 0; border-radius: 10px; padding: 8px 14px; font-weight: 700; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
 .age-alert-btn:hover { background: #b71c1c; }
+/* Forgot password: system-generated code box */
+.fg-code-box { text-align: center; background: #f1faf4; border: 1.6px dashed var(--green); border-radius: 12px; padding: 14px; font-size: 12px; color: #4b5b52; }
+.fg-code-box b { display: block; font-size: 30px; letter-spacing: 8px; color: var(--green); margin: 4px 0; }
+.fg-code-box small { opacity: .75; }
+#fgCode { text-align: center; letter-spacing: 6px; font-size: 18px; font-weight: 600; }
