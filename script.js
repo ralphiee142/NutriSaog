@@ -866,20 +866,21 @@ function renderPurok() {
     <tr>
       <td data-label="Name"><b>${esc(c.name)}</b></td>
       <td data-label="Sex">${sexBadge(c.gender)}</td>
+      <td data-label="Date of Birth">${esc(c.dob)}</td>
       <td data-label="Age (mos)">${ageCell(c.age)}</td>
       <td data-label="Address">${esc(c.address)}</td>
       <td data-label="Weight (kg)">${esc(c.weight)}</td>
       <td data-label="Height (cm)">${esc(c.height)}</td>
       <td>${actionButtons(c.id)}</td>
     </tr>`).join("")
-    : `<tr><td colspan="7" style="text-align:center;padding:20px;color:#888">Walang records sa ${activePurok}.</td></tr>`;
+    : `<tr><td colspan="8" style="text-align:center;padding:20px;color:#888">Walang records sa ${activePurok}.</td></tr>`;
 }
-const PUROK_HEAD = ["Name", "Sex", "Age (months)", "Address", "Weight (kg)", "Height (cm)"];
-const purokRow = (c) => [c.name, sexLetter(c.gender), c.age, c.address, c.weight, c.height];
+const PUROK_HEAD = ["Name", "Sex", "Date of Birth", "Age (months)", "Address", "Weight (kg)", "Height (cm)"];
+const purokRow = (c) => [c.name, sexLetter(c.gender), c.dob, c.age, c.address, c.weight, c.height];
 function exportPurokToExcel() {
   const list = purokList();
   if (!list.length) return alert("Walang records sa " + activePurok + ".");
-  downloadXLSX(`Purok-Monitoring-${activePurok.replace(" ", "")}.xlsx`, activePurok, PUROK_HEAD, list.map(purokRow), []);
+  downloadXLSX(`Purok-Monitoring-${activePurok.replace(" ", "")}.xlsx`, activePurok, PUROK_HEAD, list.map(purokRow), [2]);
 }
 function printPurokReport() {
   const list = purokList();
