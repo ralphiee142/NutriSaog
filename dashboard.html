@@ -18,7 +18,7 @@
         <img src="logo.png" alt="Barangay Saog" class="topbar-logo" />
         <div>
           <b>NutriSaog</b
-          ><small>Barangay Saog Nutrition Monitoring</small>
+          ><small>Barangay Saog Nutrition Records</small>
         </div>
       </div>
       <div class="top-right">
@@ -52,7 +52,7 @@
           <div class="dash-hero">
             <div>
               <h2>Dashboard Overview</h2>
-              <p>Barangay Saog Nutrition Monitoring &bull; Coverage: 0-59 months</p>
+              <p>Barangay Saog Nutrition Records &bull; Coverage: 0-59 months</p>
             </div>
             <div class="dash-date" id="dDate"></div>
           </div>
@@ -187,7 +187,7 @@
                   <th style="min-width:70px">12<br>Age in Months</th>
                   <th style="min-width:110px">Added By</th>
                   <th style="min-width:130px">Last Updated By</th>
-                  <th style="min-width:200px">Action</th>
+                  <th style="min-width:300px">Action</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -368,6 +368,23 @@
           <button class="btn-delete btn-confirm-delete" onclick="confirmDeleteAccount()" id="confirmDeleteAccountBtn">
             🗑️ Yes, Delete My Account
           </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="historyModal">
+      <div class="modal" style="max-width:760px;width:94%">
+        <button type="button" class="modal-close-x" onclick="closeHistoryModal()" title="Close">✕</button>
+        <h3 id="historyTitle">Measurement History</h3>
+        <div class="table-wrap" style="overflow:auto;max-height:55vh">
+          <table id="historyTable">
+            <thead><tr><th>Date Measured</th><th>Age (mos)</th><th>Weight (kg)</th><th>Height (cm)</th><th>Weight change</th><th>Height change</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="closeHistoryModal()">Close</button>
+          <button class="btn-primary" id="historyAddBtn">➕ New Measurement</button>
         </div>
       </div>
     </div>
