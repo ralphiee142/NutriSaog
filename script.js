@@ -487,21 +487,9 @@ function saveChildren(list){
   }catch(e){ console.warn(e); }
 }
 
-// A child = same name + date of birth. Each row is one measurement; a child can have many (history).
+// A child = same name + date of birth (used for the duplicate check).
 const normKey = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const childKey = (c) => normKey(c.name) + "|" + (c.dob || "");
-function latestPerChild(list) {
-  const m = new Map();
-  list.forEach((c) => {
-    const k = childKey(c), o = m.get(k);
-    if (!o || String(c.date || "") >= String(o.date || "")) m.set(k, c);
-  });
-  return [...m.values()];
-}
-function historyOf(c) {
-  return getChildren().filter((x) => childKey(x) === childKey(c))
-    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
-}
 
 // Normalize old records: "Purok 6" format, numeric fields, id
 function normalizeChild(c) {
@@ -536,7 +524,7 @@ function refreshAll() {
 
 // ==================== DASHBOARD ====================
 function renderDashboard() {
-  const list = latestPerChild(getChildren()), total = list.length; // one count per child, not per measurement
+  const list = getChildren(), total = list.length;
   const set = (id, v) => { const e = byId(id); if (e) e.textContent = v; };
 
   const male = list.filter((c) => sexLetter(c.gender) === "M").length;
@@ -578,7 +566,8 @@ if (childForm) {
     const list = getChildren();
     const same = list.filter((x) => childKey(x) === childKey({ name: byId("cName").value, dob }));
     if (same.some((x) => x.date === measured)) return alert("Duplicate: this child already has a record measured on that date. Use Update to edit it.");
-    if (same.length && !window.addingMeasurement && !confirm(`"${same[0].name}" (same birthday) already has ${same.length} record(s).\nSave this as a NEW measurement in the child's history?`)) return;
+    if (same.length && !confirm(`"${same[0].name}" (same birthday) already has ${same.length} record(s).
+Save anyway?`)) return;
     list.push({
       id: "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
       no: list.length + 1,
@@ -605,7 +594,6 @@ if (childForm) {
 function resetForm() {
   const f = byId("childForm");
   if (f) f.reset();
-  window.addingMeasurement = false;
   byId("editId").value = "";
 }
 window.resetForm = resetForm;
@@ -635,8 +623,7 @@ function renderAgeAlert() {
 }
 function actionButtons(id) {
   return `<button class="btn-outline btn-action act-edit" title="Update record" onclick="editChild('${id}')">✏️ Update</button>
-          <button class="btn-outline btn-action" title="Measurement history" onclick="showHistory('${id}')">📈 History</button>` +
-    `<button class="btn-outline btn-action act-del" title="Delete record" onclick="deleteChild('${id}')">🗑️ Delete</button>`;
+          <button class="btn-outline btn-action act-del" title="Delete record" onclick="deleteChild('${id}')">🗑️ Delete</button>`;
 }
 function fmtStamp(iso) {
   if (!iso) return "";
@@ -666,14 +653,13 @@ function renderTable() {
     tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:20px;color:#888">No records found.</td></tr>';
     return;
   }
-  const cnt = {}; getChildren().forEach((x) => { const k = childKey(x); cnt[k] = (cnt[k] || 0) + 1; });
   tbody.innerHTML = list.map((c, i) => `
     <tr class="${Number(c.age) >= 60 ? "row-over" : ""}">
       <td data-label="No.">${i + 1}</td>
       <td data-label="Purok">${esc(c.purok)}</td>
       <td data-label="Address" title="${esc(c.address)}"><span class="addr-ellipsis">${esc(c.address)}</span></td>
       <td data-label="Mother / Caregiver">${esc(c.mother)}</td>
-      <td data-label="Child"><b>${esc(c.name)}</b>${cnt[childKey(c)] > 1 ? ` <small title="Measurements recorded">(${cnt[childKey(c)]}×)</small>` : ""}</td>
+      <td data-label="Child"><b>${esc(c.name)}</b></td>
       <td data-label="IP Group">${ipBadge(c.ip)}</td>
       <td data-label="Sex">${sexBadge(c.gender)}</td>
       <td data-label="Date of Birth">${esc(c.dob)}</td>
@@ -852,7 +838,7 @@ window.printAllRecords = printAllRecords;
 // ==================== PUROK MONITORING ====================
 function purokList() {
   const q = (byId("purokSearch")?.value || "").toLowerCase().trim();
-  return latestPerChild(getChildren()).filter((c) => {
+  return getChildren().filter((c) => {
     if (c.purok !== activePurok) return false;
     return !q || `${c.name} ${c.mother} ${c.address}`.toLowerCase().includes(q);
   });
@@ -869,13 +855,11 @@ function renderPurok() {
     b.onclick = () => { activePurok = p; renderPurok(); };
     tabs.appendChild(b);
   });
-  const all = latestPerChild(getChildren());
+  const all = getChildren();
   const box = byId("purokStats");
   if (box) box.innerHTML = PUROK_LIST.map((p) => {
     const n = all.filter((c) => c.purok === p).length;
-    const on = p === activePurok;
-    return `<div class="card normal" style="cursor:pointer;${on ? "outline:2px solid #1a7a4c;" : ""}" onclick="activePurok='${p}';renderPurok()">
-      <h3>${n}</h3><p>${p} - Total Children</p></div>`;
+    return `<div class="card normal"><h3>${n}</h3><p>${p} - Total Children</p></div>`;
   }).join("");
   const list = purokList();
   document.querySelector("#purokTable tbody").innerHTML = list.length ? list.map((c) => `
@@ -904,34 +888,6 @@ function printPurokReport() {
 }
 window.renderPurok = renderPurok;
 window.initPurok = initPurok;
-
-// ==================== MEASUREMENT HISTORY ====================
-function showHistory(id) {
-  const c = getChildren().find((x) => x.id === id);
-  if (!c) return;
-  const h = historyOf(c);
-  const diff = (a, b) => { const d = parseFloat(b) - parseFloat(a); return isNaN(d) ? "" : (d > 0 ? "+" : "") + d.toFixed(1); };
-  byId("historyTitle").textContent = `Measurement History - ${c.name}`;
-  byId("historyTable").querySelector("tbody").innerHTML = h.map((m, i) => `<tr>
-    <td>${esc(fmtDate(m.date))}</td><td>${ageCell(m.age)}</td><td>${esc(m.weight)}</td><td>${esc(m.height)}</td>
-    <td>${i ? diff(h[i - 1].weight, m.weight) : "—"}</td><td>${i ? diff(h[i - 1].height, m.height) : "—"}</td></tr>`).join("");
-  byId("historyAddBtn").onclick = () => newMeasurement(id);
-  byId("historyModal").classList.add("show");
-}
-function closeHistoryModal() { byId("historyModal").classList.remove("show"); }
-function newMeasurement(id) {   // opens Add form with the child's details filled in; only the new measurement is typed
-  const c = getChildren().find((x) => x.id === id);
-  if (!c) return;
-  closeHistoryModal();
-  document.querySelector('.side-btn[data-view="add"]').click();
-  resetForm();
-  const set = (k, v) => { byId(k).value = v == null ? "" : v; };
-  set("cPurok", c.purok); set("cAddress", c.address); set("cMother", c.mother); set("cName", c.name);
-  set("cIP", c.ip || "NO"); set("cGender", sexFull(c.gender)); set("cDOB", c.dob);
-  window.addingMeasurement = true;
-  byId("cDate").focus();
-}
-window.showHistory = showHistory; window.closeHistoryModal = closeHistoryModal; window.newMeasurement = newMeasurement;
 
 // ==================== EDIT (modal - stays in All Records) ====================
 function editChild(id) {
