@@ -3,6 +3,25 @@ if (typeof USE_SUPABASE === "undefined") {
 } // var to prevent duplicate declaration error // Change to false if you want offline mode only
 
 // --- AUTH PART ---
+// ==================== PASSWORD HASHING (PBKDF2-SHA256, needs https or localhost) ====================
+const PW_ITER = 100000;
+const b2h = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+const h2b = (h) => new Uint8Array(h.match(/../g).map((x) => parseInt(x, 16)));
+async function pbkdf2(pw, salt, iter) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
+  return b2h(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: iter }, key, 256));
+}
+async function hashPassword(pw) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return `pbkdf2$${PW_ITER}$${b2h(salt)}$${await pbkdf2(pw, salt, PW_ITER)}`;
+}
+const isHashed = (v) => String(v || "").startsWith("pbkdf2$");
+async function verifyPassword(pw, stored) {
+  if (!isHashed(stored)) return pw === stored; // old plain-text account (auto-upgraded on login)
+  const [, it, salt, hash] = stored.split("$");
+  return (await pbkdf2(pw, h2b(salt), parseInt(it, 10))) === hash;
+}
+const safeUser = (u) => { const { password, ...rest } = u || {}; return rest; }; // never keep the password in the browser session
 function togglePass(id, btn) {
   const i = document.getElementById(id);
   if (!i) return;
@@ -98,14 +117,11 @@ if (loginForm) {
     ) {
       try {
         const supabase = getSupabase();
-        const { data, error } = await supabase
-          .from("users")
-          .select("*")
-          .eq("username", u)
-          .eq("password", p)
-          .single();
-        if (data && !error) {
-          localStorage.setItem("nt_current", JSON.stringify(data));
+        const { data, error } = await supabase.from("users").select("*").eq("username", u).maybeSingle();
+        if (data && !error && (await verifyPassword(p, data.password))) {
+          if (!isHashed(data.password)) // upgrade old plain-text password to a hash
+            await supabase.from("users").update({ password: await hashPassword(p) }).eq("username", u);
+          localStorage.setItem("nt_current", JSON.stringify(safeUser(data)));
           location.href = "dashboard.html";
           return;
         }
@@ -119,9 +135,12 @@ if (loginForm) {
 
     // Fallback to localStorage
     const users = JSON.parse(localStorage.getItem("nt_users") || "[]");
-    const found = users.find((x) => x.username === u && x.password === p);
+    let found = null;
+    for (const x of users) {
+      if (x.username === u && (await verifyPassword(p, x.password))) { found = x; break; }
+    }
     if (found) {
-      localStorage.setItem("nt_current", JSON.stringify(found));
+      localStorage.setItem("nt_current", JSON.stringify(safeUser(found)));
       location.href = "dashboard.html";
     } else alert("Invalid username or password!");
   });
@@ -153,7 +172,7 @@ if (registerForm) {
         if (existing) return alert("Username already exists in database!");
         const { data, error } = await supabase
           .from("users")
-          .insert([{ name, username: u, password: p }])
+          .insert([{ name, username: u, password: await hashPassword(p) }])
           .select();
         if (!error) {
           alert("Registered successfully in Supabase! You can now log in.");
@@ -168,7 +187,7 @@ if (registerForm) {
     let users = JSON.parse(localStorage.getItem("nt_users") || "[]");
     if (users.find((x) => x.username === u))
       return alert("Username already exists!");
-    users.push({ name, username: u, password: p });
+    users.push({ name, username: u, password: await hashPassword(p) });
     localStorage.setItem("nt_users", JSON.stringify(users));
     alert("Registered successfully! You can now log in.");
     document.querySelector("[data-tab=login]")?.click();
@@ -206,7 +225,7 @@ async function lookupUser(field, val) {
   return data;
 }
 async function authSignOutLocal() { try { await getSupabase().auth.signOut({ scope: "local" }); } catch {} }
-function loginAs(user) { localStorage.setItem("nt_current", JSON.stringify(user)); location.href = "dashboard.html"; }
+function loginAs(user) { localStorage.setItem("nt_current", JSON.stringify(safeUser(user))); location.href = "dashboard.html"; }
 function showPanel(id) {
   document.querySelectorAll(".auth-form").forEach((f) => f.classList.remove("active"));
   $id(id)?.classList.add("active");
@@ -296,85 +315,74 @@ if (loginForm) {
   $id("phoneForm")?.addEventListener("submit", (e) => { e.preventDefault(); $id("phStep2").classList.contains("d-none") ? phoneSend() : phoneVerify(); });
   $id("phoneResendBtn")?.addEventListener("click", phoneSend);
 
-  // ---- Forgot password ----
-  let fg = { step: 1, user: null, channel: null, value: null };
-  const FG_STEPS = ["fgStep1", "fgStep2", "fgStep3", "fgStep4"];
+  // ---- Forgot password: system gives a 6-digit code, then the user sets a new password ----
+  const FG_STEPS = ["fgStep1", "fgStep2", "fgStep3"];
+  const FG_LABELS = ["", "Get Code", "Verify Code", "Reset Password"];
+  const FG_MAX_TRIES = 3, FG_MINUTES = 5;
+  let fg = { step: 1, user: null, code: null, expires: 0, tries: 0 };
+  function fgGo(n) { fg.step = n; step(FG_STEPS, FG_STEPS[n - 1]); $id("fgSubmit").textContent = FG_LABELS[n]; }
+  function fgRestart() { fg = { step: 1, user: null, code: null, expires: 0, tries: 0 }; $id("fgCode").value = ""; fgGo(1); }
+  async function findStaff(username) {
+    if (authReady()) { try { return await lookupUser("username", username); } catch (e) { console.warn(e); } }
+    return JSON.parse(localStorage.getItem("nt_users") || "[]").find((x) => x.username === username) || null;
+  }
   $id("forgotLink")?.addEventListener("click", (e) => {
     e.preventDefault();
-    fg = { step: 1, user: null, channel: null, value: null };
-    ["fgUser", "fgCode", "fgPass", "fgPass2"].forEach((i) => ($id(i).value = ""));
-    step(FG_STEPS, "fgStep1");
+    fgRestart();
+    ["fgUser", "fgPass", "fgPass2"].forEach((i) => ($id(i).value = ""));
     showPanel("forgotForm");
     $id("fgUser").value = $id("loginUser").value.trim();
+    $id("fgUser").focus();
   });
   async function fgFind() {
-    if (!authReady()) return alert("Password reset needs the online database (Supabase).");
     const u = $id("fgUser").value.trim();
     if (!u) return alert("Enter your username.");
-    try {
-      const user = await lookupUser("username", u);
-      if (!user) return alert("Username not found.");
-      if (!user.email && !user.phone)
-        return alert("This account has no linked Google email or phone number, so a code can't be sent.\n\nPlease ask the barangay admin to reset your password.");
-      fg.user = user;
-      const opts = [];
-      if (user.email) opts.push({ k: "email", ico: "✉️", t: "Google / email", v: maskEmail(user.email) });
-      if (user.phone) opts.push({ k: "phone", ico: "📱", t: "Phone (SMS)", v: maskPhone(user.phone) });
-      $id("fgChannels").innerHTML = opts.map((o, i) => `<label class="channel ${i === 0 ? "sel" : ""}">
-        <input type="radio" name="fgCh" value="${o.k}" ${i === 0 ? "checked" : ""}/><span class="ch-ico">${o.ico}</span>
-        <span><span class="ch-t">${o.t}</span><span class="ch-v">${o.v}</span></span></label>`).join("");
-      $id("fgChannels").querySelectorAll("input").forEach((r) => r.addEventListener("change", () => {
-        $id("fgChannels").querySelectorAll(".channel").forEach((c) => c.classList.toggle("sel", c.querySelector("input").checked));
-      }));
-      fg.step = 2; step(FG_STEPS, "fgStep2");
-    } catch (e) { alert(authErr(e)); }
+    const user = await findStaff(u);
+    if (!user) return alert("Username not found.");
+    fg.user = user;
+    fg.code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0");
+    fg.expires = Date.now() + FG_MINUTES * 60 * 1000;
+    fg.tries = 0;
+    $id("fgShownCode").textContent = fg.code;
+    fgGo(2);
+    $id("fgCode").focus();
   }
-  async function fgSend() {
-    const ch = document.querySelector("input[name=fgCh]:checked")?.value;
-    if (!ch || !fg.user) return;
-    fg.channel = ch; fg.value = ch === "email" ? String(fg.user.email).toLowerCase() : normPhone(fg.user.phone);
-    try {
-      const { error } = await getSupabase().auth.signInWithOtp(ch === "email" ? { email: fg.value } : { phone: fg.value });
-      if (error) throw error;
-      $id("fgSentTo").textContent = ch === "email" ? maskEmail(fg.value) : maskPhone(fg.value);
-      fg.step = 3; step(FG_STEPS, "fgStep3"); $id("fgCode").focus();
-      cooldown($id("fgResendBtn"), 60);
-    } catch (e) { alert(authErr(e)); }
-  }
-  async function fgVerify() {
-    const token = digitsOnly($id("fgCode").value);
-    if (token.length < 6) return alert("Enter the code we sent you.");
-    try {
-      const args = fg.channel === "email" ? { email: fg.value, token, type: "email" } : { phone: fg.value, token, type: "sms" };
-      const { data, error } = await getSupabase().auth.verifyOtp(args);
-      if (error) throw error;
-      const ok = fg.channel === "email"
-        ? String(data?.user?.email || "").toLowerCase() === fg.value
-        : digitsOnly(data?.user?.phone) === digitsOnly(fg.value);
-      if (!ok) throw new Error("Verification failed.");
-      await authSignOutLocal();
-      fg.step = 4; step(FG_STEPS, "fgStep4"); $id("fgPass").focus();
-    } catch (e) { alert(authErr(e)); }
+  function fgVerify() {
+    if (Date.now() > fg.expires) { alert("The code has expired. Please get a new one."); return fgRestart(); }
+    if (digitsOnly($id("fgCode").value) !== fg.code) {
+      fg.tries++;
+      if (fg.tries >= FG_MAX_TRIES) { alert("Too many wrong attempts. Please get a new code."); return fgRestart(); }
+      return alert(`Incorrect code. ${FG_MAX_TRIES - fg.tries} attempt(s) left.`);
+    }
+    fg.code = null; // one-time use
+    fgGo(3);
+    $id("fgPass").focus();
   }
   async function fgReset() {
     const p = $id("fgPass").value, p2 = $id("fgPass2").value;
     if (p.length < 6) return alert("Password must be at least 6 characters.");
     if (p !== p2) return alert("Passwords do not match!");
+    if (!fg.user) return fgRestart();
+    const uname = fg.user.username, hp = await hashPassword(p);
     try {
-      const { error } = await getSupabase().from("users").update({ password: p }).eq("username", fg.user.username);
-      if (error) throw error;
-      const uname = fg.user.username;
-      fg = { step: 1, user: null, channel: null, value: null };
-      alert("Password updated! You can now log in with your new password.");
-      document.querySelector("[data-tab=login]")?.click();
-      $id("loginUser").value = uname; $id("loginPass").value = ""; $id("loginPass").focus();
-    } catch (e) { alert(authErr(e)); }
+      if (authReady()) {
+        const { data, error } = await getSupabase().from("users").update({ password: hp }).eq("username", uname).select();
+        if (error) throw error;
+        if (!data || !data.length) throw new Error("Could not update the password. Please try again.");
+      }
+      const users = JSON.parse(localStorage.getItem("nt_users") || "[]");
+      const lu = users.find((x) => x.username === uname);
+      if (lu) { lu.password = hp; localStorage.setItem("nt_users", JSON.stringify(users)); }
+    } catch (e) { return alert(authErr(e)); }
+    fgRestart();
+    alert("Password updated! You can now log in with your new password.");
+    document.querySelector("[data-tab=login]")?.click();
+    $id("loginUser").value = uname; $id("loginPass").value = ""; $id("loginPass").focus();
   }
   $id("forgotForm")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    [null, fgFind, fgSend, fgVerify, fgReset][fg.step]();
+    [null, fgFind, fgVerify, fgReset][fg.step]();
   });
-  $id("fgResendBtn")?.addEventListener("click", fgSend);
 }
 
 // ==================== DASHBOARD PART ====================
@@ -479,6 +487,22 @@ function saveChildren(list){
   }catch(e){ console.warn(e); }
 }
 
+// A child = same name + date of birth. Each row is one measurement; a child can have many (history).
+const normKey = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const childKey = (c) => normKey(c.name) + "|" + (c.dob || "");
+function latestPerChild(list) {
+  const m = new Map();
+  list.forEach((c) => {
+    const k = childKey(c), o = m.get(k);
+    if (!o || String(c.date || "") >= String(o.date || "")) m.set(k, c);
+  });
+  return [...m.values()];
+}
+function historyOf(c) {
+  return getChildren().filter((x) => childKey(x) === childKey(c))
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+}
+
 // Normalize old records: "Purok 6" format, numeric fields, id
 function normalizeChild(c) {
   const before = JSON.stringify(c);
@@ -512,7 +536,7 @@ function refreshAll() {
 
 // ==================== DASHBOARD ====================
 function renderDashboard() {
-  const list = getChildren(), total = list.length;
+  const list = latestPerChild(getChildren()), total = list.length; // one count per child, not per measurement
   const set = (id, v) => { const e = byId(id); if (e) e.textContent = v; };
 
   const male = list.filter((c) => sexLetter(c.gender) === "M").length;
@@ -552,6 +576,9 @@ if (childForm) {
     if (isNaN(age)) return alert("Please enter the Age in Months.");
     if (age < 0 || age > 59) return alert("Age must be 0-59 months (coverage).");
     const list = getChildren();
+    const same = list.filter((x) => childKey(x) === childKey({ name: byId("cName").value, dob }));
+    if (same.some((x) => x.date === measured)) return alert("Duplicate: this child already has a record measured on that date. Use Update to edit it.");
+    if (same.length && !window.addingMeasurement && !confirm(`"${same[0].name}" (same birthday) already has ${same.length} record(s).\nSave this as a NEW measurement in the child's history?`)) return;
     list.push({
       id: "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
       no: list.length + 1,
@@ -578,6 +605,7 @@ if (childForm) {
 function resetForm() {
   const f = byId("childForm");
   if (f) f.reset();
+  window.addingMeasurement = false;
   byId("editId").value = "";
 }
 window.resetForm = resetForm;
@@ -607,7 +635,8 @@ function renderAgeAlert() {
 }
 function actionButtons(id) {
   return `<button class="btn-outline btn-action act-edit" title="Update record" onclick="editChild('${id}')">✏️ Update</button>
-          <button class="btn-outline btn-action act-del" title="Delete record" onclick="deleteChild('${id}')">🗑️ Delete</button>`;
+          <button class="btn-outline btn-action" title="Measurement history" onclick="showHistory('${id}')">📈 History</button>` +
+    `<button class="btn-outline btn-action act-del" title="Delete record" onclick="deleteChild('${id}')">🗑️ Delete</button>`;
 }
 function fmtStamp(iso) {
   if (!iso) return "";
@@ -637,13 +666,14 @@ function renderTable() {
     tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:20px;color:#888">No records found.</td></tr>';
     return;
   }
+  const cnt = {}; getChildren().forEach((x) => { const k = childKey(x); cnt[k] = (cnt[k] || 0) + 1; });
   tbody.innerHTML = list.map((c, i) => `
     <tr class="${Number(c.age) >= 60 ? "row-over" : ""}">
       <td data-label="No.">${i + 1}</td>
       <td data-label="Purok">${esc(c.purok)}</td>
       <td data-label="Address" title="${esc(c.address)}"><span class="addr-ellipsis">${esc(c.address)}</span></td>
       <td data-label="Mother / Caregiver">${esc(c.mother)}</td>
-      <td data-label="Child"><b>${esc(c.name)}</b></td>
+      <td data-label="Child"><b>${esc(c.name)}</b>${cnt[childKey(c)] > 1 ? ` <small title="Measurements recorded">(${cnt[childKey(c)]}×)</small>` : ""}</td>
       <td data-label="IP Group">${ipBadge(c.ip)}</td>
       <td data-label="Sex">${sexBadge(c.gender)}</td>
       <td data-label="Date of Birth">${esc(c.dob)}</td>
@@ -822,7 +852,7 @@ window.printAllRecords = printAllRecords;
 // ==================== PUROK MONITORING ====================
 function purokList() {
   const q = (byId("purokSearch")?.value || "").toLowerCase().trim();
-  return getChildren().filter((c) => {
+  return latestPerChild(getChildren()).filter((c) => {
     if (c.purok !== activePurok) return false;
     return !q || `${c.name} ${c.mother} ${c.address}`.toLowerCase().includes(q);
   });
@@ -839,7 +869,7 @@ function renderPurok() {
     b.onclick = () => { activePurok = p; renderPurok(); };
     tabs.appendChild(b);
   });
-  const all = getChildren();
+  const all = latestPerChild(getChildren());
   const box = byId("purokStats");
   if (box) box.innerHTML = PUROK_LIST.map((p) => {
     const n = all.filter((c) => c.purok === p).length;
@@ -874,6 +904,34 @@ function printPurokReport() {
 }
 window.renderPurok = renderPurok;
 window.initPurok = initPurok;
+
+// ==================== MEASUREMENT HISTORY ====================
+function showHistory(id) {
+  const c = getChildren().find((x) => x.id === id);
+  if (!c) return;
+  const h = historyOf(c);
+  const diff = (a, b) => { const d = parseFloat(b) - parseFloat(a); return isNaN(d) ? "" : (d > 0 ? "+" : "") + d.toFixed(1); };
+  byId("historyTitle").textContent = `Measurement History - ${c.name}`;
+  byId("historyTable").querySelector("tbody").innerHTML = h.map((m, i) => `<tr>
+    <td>${esc(fmtDate(m.date))}</td><td>${ageCell(m.age)}</td><td>${esc(m.weight)}</td><td>${esc(m.height)}</td>
+    <td>${i ? diff(h[i - 1].weight, m.weight) : "—"}</td><td>${i ? diff(h[i - 1].height, m.height) : "—"}</td></tr>`).join("");
+  byId("historyAddBtn").onclick = () => newMeasurement(id);
+  byId("historyModal").classList.add("show");
+}
+function closeHistoryModal() { byId("historyModal").classList.remove("show"); }
+function newMeasurement(id) {   // opens Add form with the child's details filled in; only the new measurement is typed
+  const c = getChildren().find((x) => x.id === id);
+  if (!c) return;
+  closeHistoryModal();
+  document.querySelector('.side-btn[data-view="add"]').click();
+  resetForm();
+  const set = (k, v) => { byId(k).value = v == null ? "" : v; };
+  set("cPurok", c.purok); set("cAddress", c.address); set("cMother", c.mother); set("cName", c.name);
+  set("cIP", c.ip || "NO"); set("cGender", sexFull(c.gender)); set("cDOB", c.dob);
+  window.addingMeasurement = true;
+  byId("cDate").focus();
+}
+window.showHistory = showHistory; window.closeHistoryModal = closeHistoryModal; window.newMeasurement = newMeasurement;
 
 // ==================== EDIT (modal - stays in All Records) ====================
 function editChild(id) {
@@ -1344,17 +1402,18 @@ window.saveAccountChanges = window.saveAccountChanges || async function () {
   const nu = byId("newUsername").value.trim(), p = byId("newPassword").value, p2 = byId("newPassword2").value;
   if (!nu || !p) return alert("Fill in all fields.");
   if (p !== p2) return alert("Passwords do not match!");
+  const hp = await hashPassword(p);
   try {
     if (typeof getSupabase === "function" && typeof isSupabaseConfigured === "function" && isSupabaseConfigured()) {
-      await getSupabase().from("users").update({ username: nu, password: p }).eq("username", old);
+      await getSupabase().from("users").update({ username: nu, password: hp }).eq("username", old);
     }
   } catch (e) { console.warn(e); }
   const users = JSON.parse(localStorage.getItem("nt_users") || "[]");
   const u = users.find((x) => x.username === old);
-  if (u) { u.username = nu; u.password = p; }
+  if (u) { u.username = nu; u.password = hp; }
   localStorage.setItem("nt_users", JSON.stringify(users));
   const cu = getCurrentUserGlobal() || {};
-  cu.username = nu; cu.password = p;
+  cu.username = nu; delete cu.password;
   localStorage.setItem("nt_current", JSON.stringify(cu));
   const data = localStorage.getItem("nt_children_" + old);
   if (data && old !== nu) { localStorage.setItem("nt_children_" + nu, data); localStorage.removeItem("nt_children_" + old); }
