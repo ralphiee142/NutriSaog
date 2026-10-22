@@ -564,6 +564,14 @@ if (childForm) {
     if (isNaN(age)) return alert("Please enter the Age in Months.");
     if (age < 0 || age > 59) return alert("Age must be 0-59 months (coverage).");
     const list = getChildren();
+    // Duplicate NAME check (kahit iba ang birthday / date measured)
+    const newName = byId("cName").value.trim();
+    const nameExists = list.find((x) => normKey(x.name) === normKey(newName));
+    if (nameExists) {
+      alert(`⚠️ "${newName}" already exists!\n\nMay record na ang batang ito (No. ${nameExists.no}, ${nameExists.purok}). Gamitin ang Update button sa All Records para i-edit.`);
+      byId("cName").focus();
+      return;
+    }
     const same = list.filter((x) => childKey(x) === childKey({ name: byId("cName").value, dob }));
     if (same.some((x) => x.date === measured)) return alert("Duplicate: this child already has a record measured on that date. Use Update to edit it.");
     if (same.length && !confirm(`"${same[0].name}" (same birthday) already has ${same.length} record(s).
