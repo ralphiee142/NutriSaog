@@ -568,7 +568,7 @@ if (childForm) {
     const newName = byId("cName").value.trim();
     const nameExists = list.find((x) => normKey(x.name) === normKey(newName));
     if (nameExists) {
-      alert(`⚠️ "${newName}" already exists!\n\nMay record na ang batang ito (No. ${nameExists.no}, ${nameExists.purok}). Gamitin ang Update button sa All Records para i-edit.`);
+      alert(`⚠️ "${nameExists.name}" already exists!`);
       byId("cName").focus();
       return;
     }
