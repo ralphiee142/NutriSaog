@@ -1431,3 +1431,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const s = byId('searchInput');
   if (s) s.addEventListener('input', renderTable);
 });
+// ==================== AUTO AGE IN MONTHS ====================
+function calcAgeMonths(dobStr, measuredStr) {
+  if (!dobStr || !measuredStr) return "";
+  const [by, bm, bd] = dobStr.split("-").map(Number);
+  const [my, mm, md] = measuredStr.split("-").map(Number);
+  let months = (my - by) * 12 + (mm - bm);
+  if (md < bd) months--; // hindi pa kumpleto yung buwan
+  return months < 0 ? "" : months;
+}
+
+function bindAutoAge(dobId, dateId, ageId) {
+  const dob = document.getElementById(dobId);
+  const date = document.getElementById(dateId);
+  const age = document.getElementById(ageId);
+  if (!dob || !date || !age) return;
+  const update = () => {
+    age.value = calcAgeMonths(dob.value, date.value);
+  };
+  dob.addEventListener("change", update);
+  date.addEventListener("change", update);
+  dob.addEventListener("input", update);
+  date.addEventListener("input", update);
+}
+
+bindAutoAge("cDOB", "cDate", "cAge"); // Add Child Record form
+bindAutoAge("uDOB", "uDate", "uAge"); // Update/Edit modal
